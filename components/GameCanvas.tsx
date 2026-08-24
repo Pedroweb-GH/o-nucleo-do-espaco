@@ -122,12 +122,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     onEmpEnergyUpdate(0);
     onEmpTriggered?.();
 
-    // Damage / destroy all active obstacles
+    // Destroy obstacles within EMP blast radius (not all)
+    const empRadius = Math.min(window.innerWidth, window.innerHeight) * 0.38;
     let destroyedCount = 0;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
     obstaclesRef.current.forEach(obs => {
-      obs.active = false;
-      createExplosion(obs.pos.x, obs.pos.y, '#38bdf8', 14);
-      destroyedCount++;
+      const dist = Math.hypot(obs.pos.x - cx, obs.pos.y - cy);
+      if (dist < empRadius) {
+        obs.active = false;
+        createExplosion(obs.pos.x, obs.pos.y, '#38bdf8', 10);
+        destroyedCount++;
+      } else {
+        const pushAngle = Math.atan2(obs.pos.y - cy, obs.pos.x - cx);
+        const pushForce = Math.max(0, 1 - dist / (empRadius * 2)) * 3;
+        obs.velocity.x += Math.cos(pushAngle) * pushForce;
+        obs.velocity.y += Math.sin(pushAngle) * pushForce;
+      }
     });
 
     // Damage Boss if present

@@ -10,7 +10,7 @@ import {
   X, Clock, AlertTriangle, Layers, Palette, Cpu, Lock, Coins, ArrowUpCircle,
   Eye, Gauge, Settings, Maximize2, CheckCircle2, Sliders, Sparkles, Paintbrush, SlidersHorizontal,
   HeartPulse, Gift, Award, LogOut, Volume2, VolumeX, Music, Flame, Crosshair, Target, Compass,
-  Radio, Orbit, Trophy, Pause, HelpCircle, History
+  Radio, Orbit, Trophy, Pause, HelpCircle, History, User, Heart
 } from 'lucide-react';
 import type { GameHistoryEntry } from '../App';
 
@@ -361,11 +361,15 @@ const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />;
 };
 
-const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean }> = ({ onComplete, spinning }) => {
+const DISPLAY_SEGMENTS = 12;
+const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean, lastResult: PowerUpType }> = ({ onComplete, spinning, lastResult }) => {
   const [rotation, setRotation] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [resultData, setResultData] = useState<typeof WHEEL_SEGMENTS[0] | null>(null);
 
-  const segmentAngle = 360 / WHEEL_SEGMENTS.length;
-  const conicGradient = WHEEL_SEGMENTS.map((seg, i) => {
+  const visibleSegments = WHEEL_SEGMENTS.slice(0, DISPLAY_SEGMENTS);
+  const segmentAngle = 360 / DISPLAY_SEGMENTS;
+  const conicGradient = visibleSegments.map((seg, i) => {
     const start = i * segmentAngle;
     const end = (i + 1) * segmentAngle;
     return `${seg.color} ${start}deg ${end}deg`;
@@ -373,65 +377,89 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
   useEffect(() => {
     if (spinning) {
-      const newRotation = rotation + 1440 + Math.random() * 360;
+      setShowResult(false);
+      setResultData(null);
+      const randomIdx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
+      const displayIdx = randomIdx % DISPLAY_SEGMENTS;
+      const targetAngle = displayIdx * segmentAngle + segmentAngle / 2;
+      const newRotation = rotation + 1440 + (360 - targetAngle);
       setRotation(newRotation);
-      
+
       const tickInterval = setInterval(() => {
         soundEngine.playRouletteTick();
-      }, 140);
+      }, 150);
 
       setTimeout(() => {
         clearInterval(tickInterval);
-        const normalizedDeg = (newRotation % 360 + 360) % 360;
-        const index = Math.floor(normalizedDeg / segmentAngle) % WHEEL_SEGMENTS.length;
-        const result = WHEEL_SEGMENTS[index]?.type || 'WIDE_SHIELD';
-        onComplete(result);
+        const result = WHEEL_SEGMENTS[randomIdx];
+        setResultData(result);
+        setShowResult(true);
+        onComplete(result.type);
       }, 3200);
     }
   }, [spinning]);
 
+  const resultSeg = resultData || (lastResult !== 'NONE' ? WHEEL_SEGMENTS.find(s => s.type === lastResult) : null);
+
   return (
-    <div className="relative w-64 h-64 mx-auto mb-4 select-none">
-      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
-        <div className="w-0 h-0 border-l-[11px] border-l-transparent border-t-[18px] border-t-amber-400 border-r-[11px] border-r-transparent filter drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]"></div>
-      </div>
+    <div className="flex flex-col items-center mb-4">
+      <div className="relative w-52 h-52 sm:w-60 sm:h-60 mx-auto select-none">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_4px_8px_rgba(0,0,0,0.8)]">
+          <div className="w-0 h-0 border-l-[11px] border-l-transparent border-t-[18px] border-t-amber-400 border-r-[11px] border-r-transparent filter drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]"></div>
+        </div>
 
-      <div 
-        className="w-full h-full rounded-full border-4 border-slate-800 overflow-hidden shadow-[0_0_25px_rgba(0,0,0,0.8)] relative transition-transform duration-[3200ms] ease-[cubic-bezier(0.2,0.85,0.25,1)]"
-        style={{ 
-          transform: `rotate(-${rotation}deg)`,
-          background: `conic-gradient(${conicGradient})`
-        }}
-      >
-        {WHEEL_SEGMENTS.map((_, i) => (
-          <div
-            key={i}
-            className="absolute top-0 left-1/2 w-0.5 h-1/2 origin-bottom bg-black/40"
-            style={{ transform: `translateX(-50%) rotate(${i * segmentAngle}deg)` }}
-          />
-        ))}
-
-        {WHEEL_SEGMENTS.map((seg, idx) => {
-          const deg = idx * segmentAngle + (segmentAngle / 2);
-          const SegIcon = seg.Icon;
-          return (
+        <div
+          className="w-full h-full rounded-full border-4 border-slate-800 overflow-hidden shadow-[0_0_25px_rgba(0,0,0,0.8)] relative transition-transform duration-[3200ms] ease-[cubic-bezier(0.2,0.85,0.25,1)]"
+          style={{
+            transform: `rotate(-${rotation}deg)`,
+            background: `conic-gradient(${conicGradient})`
+          }}
+        >
+          {visibleSegments.map((_, i) => (
             <div
-              key={seg.type}
-              className="absolute top-0 left-1/2 w-6 h-1/2 origin-bottom -translate-x-1/2 flex flex-col items-center pt-1.5 text-white pointer-events-none"
-              style={{ transform: `translateX(-50%) rotate(${deg}deg)` }}
-            >
-              <div className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] flex flex-col items-center scale-75">
-                <SegIcon size={12} />
-                <span className="text-[6px] font-black tracking-tighter uppercase mt-0.5 whitespace-nowrap">{seg.shortLabel}</span>
-              </div>
-            </div>
-          );
-        })}
+              key={i}
+              className="absolute top-0 left-1/2 w-0.5 h-1/2 origin-bottom bg-black/30"
+              style={{ transform: `translateX(-50%) rotate(${i * segmentAngle}deg)` }}
+            />
+          ))}
 
-        <div className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-slate-900 border-2 border-slate-700 shadow-inner flex items-center justify-center z-20">
-          <Zap size={16} className="text-yellow-400 animate-pulse" />
+          {visibleSegments.map((seg, idx) => {
+            const deg = idx * segmentAngle + segmentAngle / 2;
+            const SegIcon = seg.Icon;
+            return (
+              <div
+                key={seg.type}
+                className="absolute top-0 left-1/2 w-8 h-1/2 origin-bottom -translate-x-1/2 flex flex-col items-center pt-3 text-white pointer-events-none"
+                style={{ transform: `translateX(-50%) rotate(${deg}deg)` }}
+              >
+                <div className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] flex flex-col items-center">
+                  <SegIcon size={15} />
+                  <span className="text-[7px] font-black tracking-tight uppercase mt-0.5 whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">{seg.shortLabel}</span>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-slate-900 border-2 border-slate-700 shadow-inner flex items-center justify-center z-20">
+            <Zap size={14} className="text-yellow-400 animate-pulse" />
+          </div>
         </div>
       </div>
+
+      {/* Result Card */}
+      {showResult && resultSeg && (
+        <div className="mt-3 w-full animate-in zoom-in-95 fade-in duration-300">
+          <div className="flex items-center gap-3 p-3 rounded-xl border-2 shadow-lg" style={{ borderColor: resultSeg.color, backgroundColor: resultSeg.color + '15' }}>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-slate-950" style={{ backgroundColor: resultSeg.color }}>
+              <resultSeg.Icon size={20} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-white font-black text-sm block truncate">{resultSeg.label}</span>
+              <span className="text-slate-400 text-[10px] block">{resultSeg.description}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -451,6 +479,7 @@ const GameUI: React.FC<GameUIProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<'QUESTS' | 'ACHIEVEMENTS' | 'RANKS'>('QUESTS');
   const [isCustomizingSkin, setIsCustomizingSkin] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -892,7 +921,13 @@ const GameUI: React.FC<GameUIProps> = ({
                </button>
              </div>
 
-             <p className="mt-4 text-slate-500 text-xs uppercase tracking-[0.2em]">O NÚCLEO AGUARDA COMANDO</p>
+             <button
+               onClick={() => setIsAboutOpen(true)}
+               className="mt-4 flex items-center justify-center gap-1.5 mx-auto text-slate-500 hover:text-sky-400 text-xs uppercase tracking-[0.15em] transition-colors group"
+             >
+               <User size={12} className="group-hover:scale-110 transition-transform" />
+               <span>Criado por Miguel Sousa</span>
+             </button>
           </div>
         </div>
       )}
@@ -1473,7 +1508,7 @@ const GameUI: React.FC<GameUIProps> = ({
                         </div>
                      </div>
 
-                     <Wheel onComplete={handleWheelComplete} spinning={isSpinning} />
+                     <Wheel onComplete={handleWheelComplete} spinning={isSpinning} lastResult={wheelResult} />
 
                      <div className="flex gap-2 mt-2">
                         <button
@@ -1781,6 +1816,47 @@ const GameUI: React.FC<GameUIProps> = ({
             >
               Entendido — Vamos Jogar!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* About / Creator Modal */}
+      {isAboutOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto p-4 animate-in fade-in duration-200">
+          <div className="bg-[#020617] border-2 border-sky-500/40 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
+
+            <button onClick={() => setIsAboutOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700 z-10">
+              <X size={16} />
+            </button>
+
+            <div className="relative z-10">
+              <div className="flex flex-col items-center mb-5">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-500 to-purple-600 flex items-center justify-center mb-3 shadow-lg shadow-sky-500/20">
+                  <User size={32} className="text-white" />
+                </div>
+                <h2 className="text-xl font-black text-white tracking-wider">MIGUEL SOUSA</h2>
+                <p className="text-sky-400 text-xs font-bold uppercase tracking-widest mt-1">Criador do Jogo · 9 Anos</p>
+              </div>
+
+              <div className="bg-slate-900/80 rounded-xl p-4 border border-slate-800 mb-4">
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  O Miguel tem apenas 9 anos, mas a sua curiosidade pelo mundo não conhece limites. É daqueles miúdos que fazem mil perguntas, que querem saber como tudo funciona, e que não têm medo de explorar coisas novas.
+                </p>
+                <p className="text-sm text-slate-300 leading-relaxed mt-3">
+                  Quando não está a criar jogos no computador, o Miguel está no campo a jogar futsal com os amigos — rápido de pés e com uma energia que nunca acaba. Na escola, é um verdadeiro estrela: gosta de aprender, de participar, e de descobrir algo novo todos os dias.
+                </p>
+                <p className="text-sm text-slate-300 leading-relaxed mt-3">
+                  <span className="italic text-sky-300">O Núcleo do Espaço</span> nasceu dessa mesma curiosidade — a vontade de criar algo do zero e partilhá-lo com o mundo. Este jogo é a prova de que a idade é apenas um número quando tens imaginação e vontade de aprender.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px] uppercase tracking-wider">
+                <Heart size={12} className="text-pink-400" />
+                <span>Feito com amor e muita curiosidade</span>
+                <Heart size={12} className="text-pink-400" />
+              </div>
+            </div>
           </div>
         </div>
       )}
