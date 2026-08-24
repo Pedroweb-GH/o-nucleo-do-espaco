@@ -6,9 +6,9 @@ export enum GameState {
   GAME_OVER = 'GAME_OVER'
 }
 
-export type GameMode = 'CLASSIC' | 'SURVIVAL' | 'BOSS_RUSH';
+export type GameMode = 'CLASSIC' | 'SURVIVAL' | 'BOSS_RUSH' | 'ZEN' | 'TIME_ATTACK';
 
-export type EnemyType = 'STANDARD' | 'HOMING' | 'FRAGMENTATION' | 'LASER_BEAM' | 'BOSS_ORB';
+export type EnemyType = 'STANDARD' | 'HOMING' | 'FRAGMENTATION' | 'LASER_BEAM' | 'BOSS_ORB' | 'SHIELDED' | 'TRI_SPLIT' | 'SPINNING_ASTEROID';
 
 export interface Vector2D {
   x: number;
@@ -28,6 +28,8 @@ export interface Entity {
   laserChargeMs?: number;
   laserAngle?: number;
   isFragment?: boolean;
+  shieldHp?: number;
+  spinAngle?: number;
 }
 
 export interface BossState {

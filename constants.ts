@@ -400,6 +400,22 @@ export const GAME_MODES = {
     description: 'Enfrenta os Chefes Galácticos diretamente em combate de alta voltagem!',
     color: 'from-purple-600 to-pink-600',
     border: 'border-purple-500/50'
+  },
+  ZEN: {
+    id: 'ZEN' as const,
+    name: 'ZEN',
+    tag: 'Relaxar no Espaço',
+    description: 'Sem dano ao núcleo. Desfruta do cosmos e pratica a defesa sem pressão.',
+    color: 'from-emerald-500 to-teal-600',
+    border: 'border-emerald-500/50'
+  },
+  TIME_ATTACK: {
+    id: 'TIME_ATTACK' as const,
+    name: 'CONTRARRELÓGIO',
+    tag: '90 Segundos',
+    description: 'Faz a maior pontuação possível em 90 segundos! Inimigos mais rápidos, sem chefes.',
+    color: 'from-rose-500 to-orange-600',
+    border: 'border-rose-500/50'
   }
 };
 

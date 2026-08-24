@@ -80,6 +80,7 @@ interface GameUIProps {
   onPause?: () => void;
   onResume?: () => void;
   gameHistory?: GameHistoryEntry[];
+  timeAttackRemaining?: number;
 }
 
 export const WHEEL_SEGMENTS: {
@@ -147,6 +148,217 @@ const POWERUPS: Record<PowerUpType, PowerUpConfig> = {
   CORE_REPULSOR: { type: 'CORE_REPULSOR', label: 'Repulsor do Núcleo', color: '#a21caf', description: 'Onda cinética afasta projéteis do núcleo' },
   SCORE_FRENZY_5X: { type: 'SCORE_FRENZY_5X', label: 'Hiper Pontuação x5', color: '#fb923c', description: 'Multiplicador extremo de 5x a todos os pontos' },
   GIGA_JACKPOT: { type: 'GIGA_JACKPOT', label: 'Jackpot Cósmico (+25.000 CR)', color: '#e11d48', description: 'Prémio supremo de +25.000 Créditos imediatos' },
+};
+
+const SkinPreviewCanvas: React.FC<{ coreColor: string; shieldColor: string; pattern: string; size?: number }> = ({ coreColor, shieldColor, pattern, size = 140 }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const s = size;
+    const cx = s / 2, cy = s / 2;
+    ctx.clearRect(0, 0, s, s);
+
+    const bgGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.48);
+    bgGrad.addColorStop(0, 'rgba(15,23,42,0.9)');
+    bgGrad.addColorStop(1, 'rgba(2,6,23,1)');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, s, s);
+
+    const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.4);
+    glowGrad.addColorStop(0, coreColor + '40');
+    glowGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(0, 0, s, s);
+
+    const coreR = s * 0.12;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+    ctx.fillStyle = coreColor;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = coreColor;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff40';
+    ctx.fill();
+
+    if (pattern === 'NEON_RINGS') {
+      for (let i = 1; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreR + i * 6, 0, Math.PI * 2);
+        ctx.strokeStyle = coreColor + '30';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    } else if (pattern === 'ENERGY_MATRIX') {
+      ctx.strokeStyle = coreColor + '25';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(a) * s * 0.35, cy + Math.sin(a) * s * 0.35);
+        ctx.stroke();
+      }
+    } else if (pattern === 'GOLD_STARS') {
+      ctx.fillStyle = '#fbbf2440';
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        const r = coreR + 14;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const shieldDist = s * 0.32;
+    const shieldArc = Math.PI / 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, shieldDist, -shieldArc / 2, shieldArc / 2);
+    ctx.strokeStyle = shieldColor;
+    ctx.lineWidth = s * 0.04;
+    ctx.lineCap = 'round';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = shieldColor;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+  }, [coreColor, shieldColor, pattern, size]);
+
+  return <canvas ref={canvasRef} width={size} height={size} className="rounded-xl border border-slate-700" />;
+};
+
+const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: number }> = ({ type, color, size = 48 }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const s = size;
+    const cx = s / 2, cy = s / 2;
+    ctx.clearRect(0, 0, s, s);
+
+    const coreR = s * 0.12;
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
+    ctx.fillStyle = '#38bdf8';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#38bdf8';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    const shieldDist = s * 0.32;
+    const baseArc = Math.PI / 3;
+
+    if (type === 'WIDE_SHIELD') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc * 0.75, baseArc * 0.75);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = color;
+      ctx.stroke();
+    } else if (type === 'DOUBLE_SHIELD') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, Math.PI - baseArc / 2, Math.PI + baseArc / 2);
+      ctx.stroke();
+    } else if (type === 'TRIPLE_SHIELD') {
+      for (let i = 0; i < 3; i++) {
+        const offset = (i * 2 * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, shieldDist, offset - baseArc / 2, offset + baseArc / 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+    } else if (type === 'ORBITAL_LASER') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + shieldDist * 0.7, cy - 2);
+      ctx.lineTo(cx + s * 0.45, cy - 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = color;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (type === 'CHAIN_LIGHTNING') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx + 10, cy - 5);
+      ctx.lineTo(cx + 16, cy);
+      ctx.lineTo(cx + 12, cy + 2);
+      ctx.lineTo(cx + 20, cy + 6);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = color;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else if (type === 'SLOW_TIME' || type === 'TIME_FREEZE') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.fillStyle = color + '30';
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist - 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (type === 'EXPLOSIVE_DEFENSE') {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = '#f472b6';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const r = shieldDist * 0.6;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 0, Math.PI * 2);
+        ctx.fillStyle = color + '80';
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy, shieldDist, -baseArc / 2, baseArc / 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = color;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+  }, [type, color, size]);
+
+  return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />;
 };
 
 const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean }> = ({ onComplete, spinning }) => {
@@ -233,7 +445,8 @@ const GameUI: React.FC<GameUIProps> = ({
   onBuyUpgrade, highPerformance, onPerformanceChange, colorBlindMode, onColorBlindChange,
   empEnergy, onTriggerEmp, bossState, quests, onClaimQuest, achievements, onClaimAchievement,
   sfxMuted, musicMuted, onToggleSfx, onToggleMusic, onResetAccount,
-  countdown, showTutorial, onDismissTutorial, onPause, onResume, gameHistory = []
+  countdown, showTutorial, onDismissTutorial, onPause, onResume, gameHistory = [],
+  timeAttackRemaining = 90
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -357,7 +570,7 @@ const GameUI: React.FC<GameUIProps> = ({
               </div>
             </div>
           </div>
-          {gameState !== GameState.MENU && (
+          {gameState !== GameState.MENU && gameMode !== 'ZEN' && (
             <div className="mt-2 w-32 sm:w-48 animate-in slide-in-from-left duration-500">
               <div className="flex justify-between text-[10px] text-slate-300 uppercase font-bold mb-1">
                 <span>Integridade</span>
@@ -399,6 +612,14 @@ const GameUI: React.FC<GameUIProps> = ({
                 <Layers size={14} className="text-yellow-400" />
                 <span className="text-yellow-400 font-bold font-mono tracking-widest text-xs">NÍVEL {level}</span>
              </div>
+             {gameMode === 'TIME_ATTACK' && (
+               <div className={`bg-slate-900/80 backdrop-blur border px-3 sm:px-4 py-1.5 rounded-full shadow-lg shadow-black/50 flex items-center gap-1.5 sm:gap-2 ${timeAttackRemaining <= 15 ? 'border-red-500 animate-pulse' : 'border-slate-700'}`}>
+                 <Clock size={14} className={timeAttackRemaining <= 15 ? 'text-red-400' : 'text-sky-400'} />
+                 <span className={`font-bold font-mono tracking-widest text-xs ${timeAttackRemaining <= 15 ? 'text-red-400' : 'text-sky-400'}`}>
+                   {Math.floor(timeAttackRemaining / 60)}:{(timeAttackRemaining % 60).toString().padStart(2, '0')}
+                 </span>
+               </div>
+             )}
              <button
                id="in-game-exit-btn"
                onClick={() => setShowExitConfirm(true)}
@@ -543,7 +764,7 @@ const GameUI: React.FC<GameUIProps> = ({
           <div className="text-center animate-in zoom-in duration-500 max-w-lg w-full">
              
              {/* Game Mode Selector */}
-             <div className="mb-4 bg-slate-950/80 backdrop-blur-md p-3.5 rounded-2xl border border-slate-800 shadow-2xl">
+             <div className="mb-4 bg-slate-950/80 backdrop-blur-md p-3.5 rounded-2xl border border-slate-800 shadow-2xl animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '50ms', animationFillMode: 'both' }}>
                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2.5 flex items-center justify-between">
                  <div className="flex items-center gap-1.5">
                    <Target size={13} className="text-cyan-400" />
@@ -553,7 +774,7 @@ const GameUI: React.FC<GameUIProps> = ({
                </div>
                
                <div className="grid grid-cols-3 gap-2">
-                 {(['CLASSIC', 'SURVIVAL', 'BOSS_RUSH'] as GameMode[]).map((mKey) => {
+                 {(['CLASSIC', 'SURVIVAL', 'BOSS_RUSH', 'ZEN', 'TIME_ATTACK'] as GameMode[]).map((mKey) => {
                    const m = GAME_MODES[mKey];
                    const isSelected = gameMode === mKey;
                    return (
@@ -578,7 +799,7 @@ const GameUI: React.FC<GameUIProps> = ({
              </div>
 
              {/* Difficulty Selector */}
-             <div className="mb-4 bg-slate-950/80 backdrop-blur-md p-3.5 rounded-2xl border border-slate-800 shadow-2xl">
+             <div className="mb-4 bg-slate-950/80 backdrop-blur-md p-3.5 rounded-2xl border border-slate-800 shadow-2xl animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '120ms', animationFillMode: 'both' }}>
                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5">
                  <Gauge size={13} className="text-sky-400" />
                  <span>Selecionar Dificuldade</span>
@@ -610,10 +831,11 @@ const GameUI: React.FC<GameUIProps> = ({
              </div>
 
              {/* Primary Play Button */}
-             <button 
+             <button
                id="main-start-game-btn"
+               style={{ animationDelay: '200ms', animationFillMode: 'both' }}
                onClick={() => { enterFullscreen(); onStart(); }}
-               className="w-full group relative px-12 py-4 bg-white hover:bg-sky-400 text-slate-900 hover:text-white transition-all duration-300 rounded-2xl font-black text-2xl tracking-widest shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(56,189,248,0.6)] hover:scale-105 flex items-center justify-center gap-3 overflow-hidden"
+               className="w-full group relative px-12 py-4 bg-white hover:bg-sky-400 text-slate-900 hover:text-white transition-all duration-300 rounded-2xl font-black text-2xl tracking-widest shadow-[0_0_40px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_rgba(56,189,248,0.6)] hover:scale-105 flex items-center justify-center gap-3 overflow-hidden animate-in fade-in slide-in-from-bottom duration-300"
              >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
                 <Play size={28} fill="currentColor" />
@@ -621,7 +843,7 @@ const GameUI: React.FC<GameUIProps> = ({
              </button>
 
              {/* Secondary Menu Buttons: Missões & Troféus, Definições, Loja */}
-             <div className="grid grid-cols-3 gap-2.5 mt-3.5">
+             <div className="grid grid-cols-3 gap-2.5 mt-3.5 animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '280ms', animationFillMode: 'both' }}>
                <button
                  id="menu-missions-btn"
                  onClick={() => { setIsMissionsOpen(true); setIsSettingsOpen(false); setIsShopOpen(false); }}
@@ -1221,9 +1443,7 @@ const GameUI: React.FC<GameUIProps> = ({
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-950 font-bold shrink-0" style={{ backgroundColor: seg.color }}>
-                                    <SegIcon size={13} />
-                                  </div>
+                                  <PowerUpPreviewCanvas type={seg.type} color={seg.color} size={36} />
                                   <div className="overflow-hidden">
                                     <span className={`block font-bold text-[11px] truncate ${isEquipped ? 'text-white' : 'text-slate-300'}`}>{seg.label}</span>
                                     <span className="text-[9px] text-slate-500 truncate block">{seg.description}</span>
@@ -1386,6 +1606,63 @@ const GameUI: React.FC<GameUIProps> = ({
                         );
                       })}
                     </div>
+
+                    {/* Skin Customizer Panel with Preview */}
+                    {isCustomizingSkin && currentTheme === 'CUSTOM' && (
+                      <div className="mt-4 bg-slate-900/80 border border-purple-500/30 rounded-xl p-4 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex items-start gap-4">
+                          <SkinPreviewCanvas
+                            coreColor={customSkin.coreColor}
+                            shieldColor={customSkin.shieldColor}
+                            pattern={customSkin.pattern}
+                          />
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Cor do Núcleo</label>
+                              <input
+                                type="color"
+                                value={customSkin.coreColor}
+                                onChange={e => onCustomSkinChange?.({ ...customSkin, coreColor: e.target.value })}
+                                className="w-full h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Cor do Escudo</label>
+                              <input
+                                type="color"
+                                value={customSkin.shieldColor}
+                                onChange={e => onCustomSkinChange?.({ ...customSkin, shieldColor: e.target.value })}
+                                className="w-full h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-1.5">Padrão</label>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {(['NONE', 'NEON_RINGS', 'ENERGY_MATRIX', 'GOLD_STARS'] as const).map(p => (
+                                  <button
+                                    key={p}
+                                    onClick={() => onCustomSkinChange?.({ ...customSkin, pattern: p })}
+                                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                                      customSkin.pattern === p
+                                        ? 'bg-purple-500/20 border-purple-400 text-white'
+                                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                                    }`}
+                                  >
+                                    {p === 'NONE' ? 'Limpo' : p === 'NEON_RINGS' ? 'Neon' : p === 'ENERGY_MATRIX' ? 'Matriz' : 'Estrelas'}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setIsCustomizingSkin(false)}
+                          className="w-full mt-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold transition-colors"
+                        >
+                          Confirmar Skin
+                        </button>
+                      </div>
+                    )}
                   </div>
                </div>
             </div>

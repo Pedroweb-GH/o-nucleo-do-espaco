@@ -67,6 +67,7 @@ const App: React.FC = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
+  const [timeAttackRemaining, setTimeAttackRemaining] = useState(90);
 
   const startTimeRef = useRef(0);
   const shieldAngleRef = useRef<React.MutableRefObject<number> | null>(null);
@@ -789,6 +790,7 @@ const App: React.FC = () => {
         onDeflectObstacle={handleDeflectObstacle}
         onEmpTriggered={handleEmpTriggered}
         onBossDefeated={handleBossDefeated}
+        onTimeUpdate={setTimeAttackRemaining}
       />
 
       <GameUI
@@ -858,6 +860,7 @@ const App: React.FC = () => {
         onPause={handlePause}
         onResume={handleResume}
         gameHistory={gameHistory}
+        timeAttackRemaining={timeAttackRemaining}
       />
     </div>
   );

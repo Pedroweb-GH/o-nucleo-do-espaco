@@ -26,6 +26,7 @@ interface GameCanvasProps {
   onBossStateChange?: (boss: BossState | null) => void;
   onBossStateUpdate?: (boss: BossState | null) => void;
   onBossDefeated?: (bossName: string, rewardCredits: number) => void;
+  onTimeUpdate?: (seconds: number) => void;
   setShieldAngleRef: (ref: React.MutableRefObject<number>) => void;
   colorBlindMode: boolean;
   registerEmpTrigger?: (triggerFn: () => void) => void;
@@ -40,7 +41,7 @@ interface ShieldTrailPoint {
 const GameCanvas: React.FC<GameCanvasProps> = ({ 
   gameState, gameMode = 'CLASSIC', activePowerUp = 'NONE', activePowerUps = [], powerUpTimers = {}, currentTheme, customSkin = DEFAULT_CUSTOM_SKIN, difficulty, highPerformance, maxHealth, upgrades,
   empEnergy, onEmpEnergyUpdate, onEmpTriggered,
-  onScoreUpdate, onHealthUpdate, onLevelUpdate, onGameOver, onDeflectObstacle, onBossStateChange, onBossStateUpdate, onBossDefeated,
+  onScoreUpdate, onHealthUpdate, onLevelUpdate, onGameOver, onDeflectObstacle, onBossStateChange, onBossStateUpdate, onBossDefeated, onTimeUpdate,
   setShieldAngleRef, colorBlindMode, registerEmpTrigger
 }) => {
   const notifyBossState = (boss: BossState | null) => {
@@ -91,6 +92,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Boss state ref
   const bossRef = useRef<BossState | null>(null);
   const lastBossSpawnLevelRef = useRef(0);
+  const timeAttackStartRef = useRef(0);
+  const timeAttackDuration = 90;
 
   // Deflect combo tracker for dynamic audio
   const deflectComboRef = useRef(0);
@@ -271,6 +274,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         onLevelUpdate(1);
         onBossStateChange?.(null);
 
+        if (gameMode === 'TIME_ATTACK') {
+          timeAttackStartRef.current = performance.now();
+          onTimeUpdate?.(timeAttackDuration);
+        }
+
         if (gameMode === 'BOSS_RUSH') {
           spawnBoss(1, window.innerWidth, window.innerHeight);
         }
@@ -338,6 +346,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         enemyType = 'FRAGMENTATION';
       } else if (levelRef.current >= 6 && rand < 0.60) {
         enemyType = 'LASER_BEAM';
+      } else if (levelRef.current >= 5 && rand < 0.15) {
+        enemyType = 'SHIELDED';
+      } else if (levelRef.current >= 7 && rand < 0.20) {
+        enemyType = 'TRI_SPLIT';
+      } else if (levelRef.current >= 2 && rand < 0.12) {
+        enemyType = 'SPINNING_ASTEROID';
       }
     }
 
@@ -345,16 +359,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     let radius = 10 + Math.random() * 8;
 
     if (enemyType === 'HOMING') {
-      obstacleColor = '#c084fc'; // Purple
+      obstacleColor = '#c084fc';
       radius = 11;
       finalSpeed *= 0.85;
     } else if (enemyType === 'FRAGMENTATION') {
-      obstacleColor = '#2dd4bf'; // Teal
+      obstacleColor = '#2dd4bf';
       radius = 14;
     } else if (enemyType === 'LASER_BEAM') {
-      obstacleColor = '#f43f5e'; // Rose
+      obstacleColor = '#f43f5e';
       radius = 8;
       finalSpeed *= 1.4;
+    } else if (enemyType === 'SHIELDED') {
+      obstacleColor = '#60a5fa';
+      radius = 13;
+      finalSpeed *= 0.75;
+    } else if (enemyType === 'TRI_SPLIT') {
+      obstacleColor = '#f59e0b';
+      radius = 12;
+    } else if (enemyType === 'SPINNING_ASTEROID') {
+      obstacleColor = '#a1a1aa';
+      radius = 16 + Math.random() * 6;
+      finalSpeed *= 0.65;
     }
 
     const velocity = { x: (dirX / length) * finalSpeed, y: (dirY / length) * finalSpeed };
@@ -370,7 +395,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       homingStrength: enemyType === 'HOMING' ? 0.04 : 0,
       spawnTime: performance.now(),
       laserChargeMs: enemyType === 'LASER_BEAM' ? 1200 : 0,
-      laserAngle: angle
+      laserAngle: angle,
+      shieldHp: enemyType === 'SHIELDED' ? 2 : undefined,
+      spinAngle: enemyType === 'SPINNING_ASTEROID' ? Math.random() * Math.PI * 2 : undefined,
     });
   };
 
@@ -459,6 +486,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (Math.floor(time) % 30 === 0) onHealthUpdate(healthRef.current);
     }
 
+    // TIME_ATTACK countdown
+    if (gameMode === 'TIME_ATTACK') {
+      const elapsed = (performance.now() - timeAttackStartRef.current) / 1000;
+      const remaining = Math.max(0, timeAttackDuration - elapsed);
+      if (Math.floor(time) % 5 === 0) onTimeUpdate?.(Math.ceil(remaining));
+      if (remaining <= 0 && !gameOverFiredRef.current) {
+        gameOverFiredRef.current = true;
+        onGameOver(scoreRef.current);
+        return;
+      }
+    }
+
     // Level progression
     const currentLevel = Math.floor(scoreRef.current / 500) + 1;
     if (currentLevel > levelRef.current) {
@@ -545,7 +584,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     const timeRamp = Math.min(0.5, (scoreRef.current / 5000));
-    const difficultyMultiplier = 1 + ((levelRef.current - 1) * 0.15) + timeRamp;
+    let difficultyMultiplier = 1 + ((levelRef.current - 1) * 0.15) + timeRamp;
+    if (gameMode === 'ZEN') difficultyMultiplier *= 0.6;
+    if (gameMode === 'TIME_ATTACK') difficultyMultiplier *= 1.3;
     const spawnRate = Math.max(180, (diffConfig.spawnRateMs) / difficultyMultiplier);
     if (time - lastSpawnTimeRef.current > spawnRate) {
       spawnObstacle(width, height, difficultyMultiplier);
@@ -600,11 +641,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       obs.pos.x += obs.velocity.x * speedFactor;
       obs.pos.y += obs.velocity.y * speedFactor;
+      if (obs.enemyType === 'SPINNING_ASTEROID' && obs.spinAngle !== undefined) {
+        obs.spinAngle += 0.06 * speedFactor;
+      }
       const distToCenter = Math.sqrt(Math.pow(obs.pos.x - width/2, 2) + Math.pow(obs.pos.y - height/2, 2));
 
       // Core collision
       if (distToCenter < GAME_CONSTANTS.CORE_RADIUS + obs.radius) {
         obs.active = false;
+        if (gameMode === 'ZEN') {
+          createExplosion(width/2, height/2, themeColors.CORE, 8);
+          return;
+        }
         if (invulnerabilityTimerRef.current <= 0) {
           if (hasPowerUp('INVULNERABILITY_BOOST')) {
             invulnerabilityTimerRef.current = 4000;
@@ -621,13 +669,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           soundEngine.playCoreHit();
           deflectComboRef.current = 0;
           onHealthUpdate(Math.max(0, healthRef.current));
-          if (healthRef.current <= 0) { 
-            healthRef.current = 0; 
+          if (healthRef.current <= 0) {
+            healthRef.current = 0;
             if (!gameOverFiredRef.current) {
               gameOverFiredRef.current = true;
               onGameOver(scoreRef.current);
             }
-          } 
+          }
           else {
             invulnerabilityTimerRef.current = 3000;
             addFloatingText(width/2, height/2 - 50, "ESCUDO DE EMERGÊNCIA!", themeColors.CORE);
@@ -675,6 +723,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }
 
         if (isDeflected) {
+          // SHIELDED enemies require multiple hits to destroy
+          if (obs.enemyType === 'SHIELDED' && obs.shieldHp !== undefined && obs.shieldHp > 1) {
+            obs.shieldHp -= 1;
+            obs.color = '#93c5fd';
+            const bounceAngle = obsAngle + Math.PI + (Math.random() - 0.5) * 0.6;
+            const bounceSpeed = GAME_CONSTANTS.OBSTACLE_BASE_SPEED * 0.6;
+            obs.velocity = { x: Math.cos(bounceAngle) * bounceSpeed, y: Math.sin(bounceAngle) * bounceSpeed };
+            createExplosion(obs.pos.x, obs.pos.y, '#60a5fa', 6);
+            addFloatingText(obs.pos.x, obs.pos.y, 'ESCUDO!', '#60a5fa');
+            soundEngine.playShieldBlock(1);
+            onDeflectObstacle?.();
+            const empGain = hasPowerUp('HYPER_EMP') ? 18 : 8;
+            onEmpEnergyUpdate(Math.min(100, empEnergy + empGain));
+            return;
+          }
+
+          // TRI_SPLIT enemies split into 3 smaller projectiles
+          if (obs.enemyType === 'TRI_SPLIT' && !obs.isFragment) {
+            for (let f = 0; f < 3; f++) {
+              const fragAngle = obsAngle + Math.PI + ((f - 1) * 0.7);
+              const fragSpeed = GAME_CONSTANTS.OBSTACLE_BASE_SPEED * 1.1;
+              obstaclesRef.current.push({
+                id: Math.random().toString(),
+                pos: { x: obs.pos.x, y: obs.pos.y },
+                velocity: { x: Math.cos(fragAngle) * fragSpeed, y: Math.sin(fragAngle) * fragSpeed },
+                radius: 6,
+                color: '#fbbf24',
+                active: true,
+                isFragment: true,
+                enemyType: 'STANDARD'
+              });
+            }
+          }
+
           obs.active = false;
           createExplosion(obs.pos.x, obs.pos.y, themeColors.SHIELD);
           triggerShake(5);
@@ -1154,12 +1236,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Projectile specialized details
       if (obs.enemyType === 'HOMING') {
-        // Trailing ring
         ctx.strokeStyle = '#e879f9';
         ctx.lineWidth = 1.5;
         ctx.stroke();
       } else if (obs.enemyType === 'FRAGMENTATION') {
-        // Inner diamond
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.arc(obs.pos.x, obs.pos.y, obs.radius * 0.4, 0, Math.PI * 2);
@@ -1171,6 +1251,47 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.moveTo(obs.pos.x - obs.velocity.x * 3, obs.pos.y - obs.velocity.y * 3);
         ctx.lineTo(obs.pos.x, obs.pos.y);
         ctx.stroke();
+      } else if (obs.enemyType === 'SHIELDED') {
+        ctx.strokeStyle = obs.shieldHp && obs.shieldHp > 1 ? '#3b82f6' : '#93c5fd';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(obs.pos.x, obs.pos.y, obs.radius + 4, 0, Math.PI * 2);
+        ctx.stroke();
+        if (obs.shieldHp && obs.shieldHp > 1) {
+          ctx.strokeStyle = '#60a5fa';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(obs.pos.x, obs.pos.y, obs.radius + 7, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else if (obs.enemyType === 'TRI_SPLIT') {
+        ctx.fillStyle = '#fde047';
+        const triR = obs.radius * 0.35;
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2 + performance.now() * 0.003;
+          ctx.beginPath();
+          ctx.arc(obs.pos.x + Math.cos(a) * obs.radius * 0.5, obs.pos.y + Math.sin(a) * obs.radius * 0.5, triR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (obs.enemyType === 'SPINNING_ASTEROID') {
+        ctx.save();
+        ctx.translate(obs.pos.x, obs.pos.y);
+        ctx.rotate(obs.spinAngle || 0);
+        ctx.fillStyle = obs.color;
+        ctx.beginPath();
+        const sides = 7;
+        for (let i = 0; i < sides; i++) {
+          const a = (i / sides) * Math.PI * 2;
+          const r = obs.radius * (0.75 + Math.sin(i * 2.3) * 0.25);
+          if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+          else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#71717a';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
       }
       ctx.restore();
     });
