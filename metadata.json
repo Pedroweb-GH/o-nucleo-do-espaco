@@ -1,0 +1,6 @@
+{
+  "name": "O Núcleo do Espaço",
+  "description": "Um jogo arcade orbital de alta velocidade com combates contra Chefes Titânicos, Super Habilidade EMP, Modos Sobrevivência e Batalha de Chefes, sintetizador de áudio Web Audio API, missões diárias e patentes galácticas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
