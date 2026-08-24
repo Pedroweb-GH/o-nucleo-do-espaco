@@ -1,17 +1,11 @@
-// Web Audio API Synthesizer for Space Nucleus Sound Effects & Dynamic Background Synth
-
 class SpaceSoundEngine {
   private ctx: AudioContext | null = null;
   private sfxMuted: boolean = false;
   private musicMuted: boolean = false;
   private musicPlaying: boolean = false;
-  private musicInterval: number | null = null;
-  private noteIndex: number = 0;
   private masterGain: GainNode | null = null;
-
-  constructor() {
-    // Lazy audio context initialization upon user interaction
-  }
+  private musicSource: AudioBufferSourceNode | null = null;
+  private musicGain: GainNode | null = null;
 
   private initContext() {
     if (!this.ctx) {
@@ -73,9 +67,8 @@ class SpaceSoundEngine {
     } catch {}
   }
 
-  // SFX: Shield Block / Deflect
   public playShieldBlock(combo: number = 1) {
-    this.triggerHaptic(25);
+    this.triggerHaptic(combo > 3 ? [15, 10, 25] : 25);
     if (this.sfxMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
@@ -95,17 +88,13 @@ class SpaceSoundEngine {
 
       osc.connect(gain);
       gain.connect(this.masterGain);
-
       osc.start(t);
       osc.stop(t + 0.12);
-    } catch {
-      // Audio fallback
-    }
+    } catch {}
   }
 
-  // SFX: Core Damage Taken
   public playCoreHit() {
-    this.triggerHaptic(70);
+    this.triggerHaptic([30, 20, 70, 30, 40]);
     if (this.sfxMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
@@ -124,22 +113,19 @@ class SpaceSoundEngine {
 
       osc.connect(gain);
       gain.connect(this.masterGain);
-
       osc.start(t);
       osc.stop(t + 0.35);
     } catch {}
   }
 
-  // SFX: EMP Shockwave Activated
   public playEMP() {
-    this.triggerHaptic([40, 30, 80]);
+    this.triggerHaptic([20, 15, 40, 15, 80, 20, 40]);
     if (this.sfxMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
 
     try {
       const t = this.ctx.currentTime;
-      // High sweeping whoosh
       const osc1 = this.ctx.createOscillator();
       const gain1 = this.ctx.createGain();
       osc1.type = 'sine';
@@ -152,7 +138,6 @@ class SpaceSoundEngine {
       osc1.start(t);
       osc1.stop(t + 0.6);
 
-      // Deep sub bass blast
       const osc2 = this.ctx.createOscillator();
       const gain2 = this.ctx.createGain();
       osc2.type = 'triangle';
@@ -167,15 +152,14 @@ class SpaceSoundEngine {
     } catch {}
   }
 
-  // SFX: Level Up / Boss Defeated Fanfare
   public playLevelUp() {
-    this.triggerHaptic([30, 30, 60]);
+    this.triggerHaptic([20, 20, 30, 20, 60]);
     if (this.sfxMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
 
     try {
-      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      const notes = [523.25, 659.25, 783.99, 1046.50];
       const t = this.ctx.currentTime;
       notes.forEach((freq, idx) => {
         const osc = this.ctx!.createOscillator();
@@ -192,7 +176,6 @@ class SpaceSoundEngine {
     } catch {}
   }
 
-  // SFX: Roulette Tick
   public playRouletteTick() {
     this.triggerHaptic(12);
     if (this.sfxMuted) return;
@@ -214,8 +197,8 @@ class SpaceSoundEngine {
     } catch {}
   }
 
-  // SFX: Boss Warning Alarm
   public playBossAlarm() {
+    this.triggerHaptic([50, 40, 80, 40, 120]);
     if (this.sfxMuted) return;
     this.initContext();
     if (!this.ctx || !this.masterGain) return;
@@ -238,53 +221,91 @@ class SpaceSoundEngine {
     } catch {}
   }
 
-  // Background Synth Ambient Loop
+  public playLaserDeflect() {
+    this.triggerHaptic([10, 8, 20]);
+    if (this.sfxMuted) return;
+    this.initContext();
+    if (!this.ctx || !this.masterGain) return;
+
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(2400, t);
+      osc.frequency.exponentialRampToValueAtTime(400, t + 0.15);
+      gain.gain.setValueAtTime(0.15, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    } catch {}
+  }
+
+  private buildMusicBuffer(): AudioBuffer | null {
+    if (!this.ctx) return null;
+
+    const scale = [146.83, 174.61, 196.00, 220.00, 261.63, 293.66, 349.23, 392.00];
+    const pattern = [0, 2, 4, 3, 5, 4, 2, 1, 0, 3, 5, 7, 5, 3, 2, 0];
+    const noteDur = 0.28;
+    const noteGap = 0.28;
+    const totalDur = pattern.length * noteGap;
+    const sampleRate = this.ctx.sampleRate;
+    const bufLen = Math.ceil(totalDur * sampleRate);
+    const buffer = this.ctx.createBuffer(1, bufLen, sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let n = 0; n < pattern.length; n++) {
+      const freq = scale[pattern[n]];
+      const startSample = Math.floor(n * noteGap * sampleRate);
+      const endSample = Math.min(bufLen, Math.floor((n * noteGap + noteDur) * sampleRate));
+
+      for (let s = startSample; s < endSample; s++) {
+        const t = (s - startSample) / sampleRate;
+        const env = Math.max(0, 0.05 * Math.exp(-t * 3.5));
+        const saw = 2 * ((freq * t) % 1) - 1;
+        const cutoff = 600 * Math.exp(-t * 5) + 250;
+        const filtered = saw * Math.min(1, cutoff / (freq * 2));
+        data[s] += env * filtered;
+      }
+    }
+
+    return buffer;
+  }
+
   public startMusic() {
     if (this.musicMuted || this.musicPlaying) return;
     this.initContext();
+    if (!this.ctx || !this.masterGain) return;
+
     this.musicPlaying = true;
+    const buffer = this.buildMusicBuffer();
+    if (!buffer) return;
 
-    // Arpeggiated Space Bassline Scale (D Dorian Synthwave)
-    const scale = [146.83, 174.61, 196.00, 220.00, 261.63, 293.66, 349.23, 392.00]; // D3 to G4
-    const melodyPattern = [0, 2, 4, 3, 5, 4, 2, 1, 0, 3, 5, 7, 5, 3, 2, 0];
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+    this.musicGain.connect(this.masterGain);
 
-    this.musicInterval = window.setInterval(() => {
-      if (!this.ctx || !this.masterGain || this.musicMuted) return;
-      try {
-        const t = this.ctx.currentTime;
-        const noteFreq = scale[melodyPattern[this.noteIndex % melodyPattern.length]];
-        this.noteIndex++;
-
-        // Bass/Pad Synth Note
-        const osc = this.ctx.createOscillator();
-        const filter = this.ctx.createBiquadFilter();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(noteFreq, t);
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(600, t);
-        filter.frequency.exponentialRampToValueAtTime(250, t + 0.25);
-
-        gain.gain.setValueAtTime(0.05, t);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.masterGain);
-
-        osc.start(t);
-        osc.stop(t + 0.3);
-      } catch {}
-    }, 280);
+    this.musicSource = this.ctx.createBufferSource();
+    this.musicSource.buffer = buffer;
+    this.musicSource.loop = true;
+    this.musicSource.connect(this.musicGain);
+    this.musicSource.start();
   }
 
   public stopMusic() {
     this.musicPlaying = false;
-    if (this.musicInterval) {
-      clearInterval(this.musicInterval);
-      this.musicInterval = null;
+    if (this.musicSource) {
+      try {
+        this.musicSource.stop();
+      } catch {}
+      this.musicSource.disconnect();
+      this.musicSource = null;
+    }
+    if (this.musicGain) {
+      this.musicGain.disconnect();
+      this.musicGain = null;
     }
   }
 }

@@ -1,16 +1,29 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from './components/GameCanvas';
 import GameUI from './components/GameUI';
-import { 
-  GameState, GameReport, PowerUpType, ThemeType, UpgradesState, 
-  DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement 
+import {
+  GameState, GameReport, PowerUpType, ThemeType, UpgradesState,
+  DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement
 } from './types';
 import { generateBattleReport } from './services/geminiService';
-import { 
-  UPGRADES, DIFFICULTIES, DEFAULT_CUSTOM_SKIN, POWER_UP_DURATION_SECONDS, 
-  INITIAL_QUESTS, INITIAL_ACHIEVEMENTS 
+import {
+  UPGRADES, DIFFICULTIES, DEFAULT_CUSTOM_SKIN, POWER_UP_DURATION_SECONDS,
+  INITIAL_QUESTS, INITIAL_ACHIEVEMENTS
 } from './constants';
 import { soundEngine } from './soundEngine';
+
+export interface GameHistoryEntry {
+  score: number;
+  level: number;
+  credits: number;
+  difficulty: DifficultyType;
+  mode: GameMode;
+  date: string;
+}
+
+function safeParse<T>(json: string, fallback: T): T {
+  try { return JSON.parse(json); } catch { return fallback; }
+}
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -28,19 +41,15 @@ const App: React.FC = () => {
   const [equippedPowerUps, setEquippedPowerUps] = useState<PowerUpType[]>([]);
   const [activePowerUps, setActivePowerUps] = useState<PowerUpType[]>([]);
   const [powerUpTimers, setPowerUpTimers] = useState<Partial<Record<PowerUpType, number>>>({});
-  
-  // EMP Super Ability
+
   const [empEnergy, setEmpEnergy] = useState<number>(0);
   const triggerEmpFnRef = useRef<(() => void) | null>(null);
-  
-  // Boss State
+
   const [bossState, setBossState] = useState<BossState | null>(null);
 
-  // Quests and Achievements
   const [quests, setQuests] = useState<Quest[]>(INITIAL_QUESTS);
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
-  
-  // Audio state
+
   const [sfxMuted, setSfxMuted] = useState(false);
   const [musicMuted, setMusicMuted] = useState(false);
 
@@ -52,13 +61,19 @@ const App: React.FC = () => {
   const [unlockedThemes, setUnlockedThemes] = useState<ThemeType[]>(['DEFAULT']);
   const [customSkin, setCustomSkin] = useState<CustomSkinConfig>(DEFAULT_CUSTOM_SKIN);
   const [upgrades, setUpgrades] = useState<UpgradesState>({ hull: 0, mining: 0, regen: 0, luck: 0 });
-  const [highPerformance, setHighPerformance] = useState(false); 
+  const [highPerformance, setHighPerformance] = useState(false);
   const [colorBlindMode, setColorBlindMode] = useState(false);
-  
+
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
+
   const startTimeRef = useRef(0);
   const shieldAngleRef = useRef<React.MutableRefObject<number> | null>(null);
   const isGameOverInProgressRef = useRef(false);
+  const pausedBeforeHiddenRef = useRef(false);
 
+  // Load all persisted state
   useEffect(() => {
     const savedCredits = localStorage.getItem('nucleoEspaco_credits');
     if (savedCredits) setCredits(parseInt(savedCredits, 10));
@@ -84,13 +99,7 @@ const App: React.FC = () => {
 
     const savedEquipped = localStorage.getItem('nucleoEspaco_equippedPowerUps');
     if (savedEquipped) {
-      try {
-        setEquippedPowerUps(JSON.parse(savedEquipped));
-      } catch (e) {
-        console.error('Error parsing equipped powerups', e);
-      }
-    } else {
-      setEquippedPowerUps([]);
+      setEquippedPowerUps(safeParse<PowerUpType[]>(savedEquipped, []));
     }
 
     const savedDifficulty = localStorage.getItem('nucleoEspaco_difficulty');
@@ -100,33 +109,56 @@ const App: React.FC = () => {
 
     const savedSpins = localStorage.getItem('nucleoEspaco_extraSpins');
     if (savedSpins) setExtraSpins(parseInt(savedSpins, 10));
+
     const savedThemes = localStorage.getItem('nucleoEspaco_themes');
-    if (savedThemes) setUnlockedThemes(JSON.parse(savedThemes));
+    if (savedThemes) setUnlockedThemes(safeParse<ThemeType[]>(savedThemes, ['DEFAULT']));
+
     const savedTheme = localStorage.getItem('nucleoEspaco_currentTheme');
     if (savedTheme) setCurrentTheme(savedTheme as ThemeType);
+
     const savedCustomSkin = localStorage.getItem('nucleoEspaco_customSkin');
-    if (savedCustomSkin) {
-      try {
-        setCustomSkin(JSON.parse(savedCustomSkin));
-      } catch (e) {
-        console.error('Error parsing custom skin', e);
-      }
-    }
+    if (savedCustomSkin) setCustomSkin(safeParse(savedCustomSkin, DEFAULT_CUSTOM_SKIN));
+
     const savedHigh = localStorage.getItem('nucleoEspaco_highscore');
     if (savedHigh) setHighScore(parseInt(savedHigh, 10));
+
     const savedUpgrades = localStorage.getItem('nucleoEspaco_upgrades');
-    if (savedUpgrades) setUpgrades(JSON.parse(savedUpgrades));
+    if (savedUpgrades) setUpgrades(safeParse(savedUpgrades, { hull: 0, mining: 0, regen: 0, luck: 0 }));
+
     const savedCB = localStorage.getItem('nucleoEspaco_colorblind');
     if (savedCB) setColorBlindMode(savedCB === 'true');
 
-    const savedQuests = localStorage.getItem('nucleoEspaco_quests');
-    if (savedQuests) {
-      try { setQuests(JSON.parse(savedQuests)); } catch (e) {}
+    // Persist audio/performance prefs
+    const savedSfxMuted = localStorage.getItem('nucleoEspaco_sfxMuted');
+    if (savedSfxMuted) { const m = savedSfxMuted === 'true'; setSfxMuted(m); soundEngine.setMuted(m); }
+    const savedMusicMuted = localStorage.getItem('nucleoEspaco_musicMuted');
+    if (savedMusicMuted) { const m = savedMusicMuted === 'true'; setMusicMuted(m); soundEngine.setMusicMuted(m); }
+    const savedHP = localStorage.getItem('nucleoEspaco_highPerformance');
+    if (savedHP) setHighPerformance(savedHP === 'true');
+
+    // Quests with daily reset
+    const savedQuestDate = localStorage.getItem('nucleoEspaco_questDate');
+    const today = new Date().toISOString().slice(0, 10);
+    if (savedQuestDate !== today) {
+      const freshQuests = INITIAL_QUESTS.map(q => ({ ...q, current: 0, completed: false, claimed: false }));
+      setQuests(freshQuests);
+      localStorage.setItem('nucleoEspaco_quests', JSON.stringify(freshQuests));
+      localStorage.setItem('nucleoEspaco_questDate', today);
+    } else {
+      const savedQuests = localStorage.getItem('nucleoEspaco_quests');
+      if (savedQuests) setQuests(safeParse(savedQuests, INITIAL_QUESTS));
     }
+
     const savedAchievements = localStorage.getItem('nucleoEspaco_achievements');
-    if (savedAchievements) {
-      try { setAchievements(JSON.parse(savedAchievements)); } catch (e) {}
-    }
+    if (savedAchievements) setAchievements(safeParse(savedAchievements, INITIAL_ACHIEVEMENTS));
+
+    // Tutorial: show for first-time players
+    const hasPlayed = localStorage.getItem('nucleoEspaco_hasPlayed');
+    if (!hasPlayed) setShowTutorial(true);
+
+    // Game history (leaderboard)
+    const savedHistory = localStorage.getItem('nucleoEspaco_gameHistory');
+    if (savedHistory) setGameHistory(safeParse<GameHistoryEntry[]>(savedHistory, []));
   }, []);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -151,6 +183,7 @@ const App: React.FC = () => {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Mouse move for shield aiming (desktop)
   const handleMouseMove = useCallback((e: MouseEvent | React.MouseEvent) => {
     if (gameState !== GameState.PLAYING || !shieldAngleRef.current) return;
     const cx = window.innerWidth / 2;
@@ -158,32 +191,11 @@ const App: React.FC = () => {
     shieldAngleRef.current.current = Math.atan2(e.clientY - cy, e.clientX - cx);
   }, [gameState]);
 
-  const handleTouchStart = useCallback((e: TouchEvent | React.TouchEvent) => {
-    if (gameState !== GameState.PLAYING || !shieldAngleRef.current) return;
-    
-    // Check multi-touch for EMP shockwave (2 or more fingers)
+  // Multi-touch EMP trigger only (touch aiming handled by GameCanvas with smooth lerp)
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (gameState !== GameState.PLAYING) return;
     if (e.touches.length >= 2) {
-      if (triggerEmpFnRef.current) {
-        triggerEmpFnRef.current();
-      }
-      return;
-    }
-
-    const touch = e.touches[0];
-    if (touch) {
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
-      shieldAngleRef.current.current = Math.atan2(touch.clientY - cy, touch.clientX - cx);
-    }
-  }, [gameState]);
-
-  const handleTouchMove = useCallback((e: TouchEvent | React.TouchEvent) => {
-    if (gameState !== GameState.PLAYING || !shieldAngleRef.current) return;
-    const touch = e.touches[0];
-    if (touch) {
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
-      shieldAngleRef.current.current = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+      if (triggerEmpFnRef.current) triggerEmpFnRef.current();
     }
   }, [gameState]);
 
@@ -191,21 +203,63 @@ const App: React.FC = () => {
     const next = !sfxMuted;
     setSfxMuted(next);
     soundEngine.setMuted(next);
+    localStorage.setItem('nucleoEspaco_sfxMuted', next.toString());
   }, [sfxMuted]);
 
   const handleToggleMusic = useCallback(() => {
     const next = !musicMuted;
     setMusicMuted(next);
     soundEngine.setMusicMuted(next);
+    localStorage.setItem('nucleoEspaco_musicMuted', next.toString());
   }, [musicMuted]);
 
-  // Desktop Keyboard Shortcuts (Space for EMP, F for Fullscreen, M for Mute)
+  const handleSetHighPerformance = useCallback((hp: boolean) => {
+    setHighPerformance(hp);
+    localStorage.setItem('nucleoEspaco_highPerformance', hp.toString());
+  }, []);
+
+  // Pause / Resume
+  const handlePause = useCallback(() => {
+    if (gameState === GameState.PLAYING) {
+      setGameState(GameState.PAUSED);
+      soundEngine.stopMusic();
+    }
+  }, [gameState]);
+
+  const handleResume = useCallback(() => {
+    if (gameState === GameState.PAUSED) {
+      setGameState(GameState.PLAYING);
+      soundEngine.startMusic();
+    }
+  }, [gameState]);
+
+  const handleTogglePause = useCallback(() => {
+    if (gameState === GameState.PLAYING) handlePause();
+    else if (gameState === GameState.PAUSED) handleResume();
+  }, [gameState, handlePause, handleResume]);
+
+  // Auto-pause on tab hidden
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && gameState === GameState.PLAYING) {
+        pausedBeforeHiddenRef.current = false;
+        handlePause();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [gameState, handlePause]);
+
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && gameState === GameState.PLAYING) {
         e.preventDefault();
-        if (triggerEmpFnRef.current) {
-          triggerEmpFnRef.current();
+        if (triggerEmpFnRef.current) triggerEmpFnRef.current();
+      } else if (e.code === 'KeyP' || e.code === 'Escape') {
+        if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
+          e.preventDefault();
+          handleTogglePause();
         }
       } else if (e.code === 'KeyF') {
         toggleFullscreen();
@@ -217,9 +271,7 @@ const App: React.FC = () => {
     const handleContextMenu = (e: MouseEvent) => {
       if (gameState === GameState.PLAYING) {
         e.preventDefault();
-        if (triggerEmpFnRef.current) {
-          triggerEmpFnRef.current();
-        }
+        if (triggerEmpFnRef.current) triggerEmpFnRef.current();
       }
     };
 
@@ -229,22 +281,21 @@ const App: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [gameState, toggleFullscreen, handleToggleSfx]);
+  }, [gameState, toggleFullscreen, handleToggleSfx, handleTogglePause]);
 
+  // Event listeners: mouse for desktop, multi-touch EMP only (GameCanvas handles touch aiming)
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [handleMouseMove, handleTouchStart, handleTouchMove]);
+  }, [handleMouseMove, handleTouchStart]);
 
   const maxHealth = 100 + (upgrades.hull * UPGRADES.HULL.bonusPerLevel);
 
-  // 5-minute (300s) countdown timer per active bonus during combat
+  // 5-minute countdown timer per active bonus during combat
   useEffect(() => {
     if (gameState !== GameState.PLAYING || activePowerUps.length === 0) return;
 
@@ -278,9 +329,86 @@ const App: React.FC = () => {
     return () => clearInterval(timerInterval);
   }, [gameState, activePowerUps]);
 
-  const handleStartGame = useCallback(() => {
+  // Quest & Achievement progress tracking
+  const updateQuestProgress = useCallback((questId: string, amount: number = 1) => {
+    setQuests(prev => {
+      const updated = prev.map(q => {
+        if (q.id === questId && !q.completed) {
+          const newCurrent = Math.min(q.target, q.current + amount);
+          return { ...q, current: newCurrent, completed: newCurrent >= q.target };
+        }
+        return q;
+      });
+      localStorage.setItem('nucleoEspaco_quests', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const updateAchievementProgress = useCallback((achId: string, value: number, isAbsolute: boolean = false) => {
+    setAchievements(prev => {
+      const updated = prev.map(a => {
+        if (a.id === achId && !a.unlocked) {
+          const newProgress = isAbsolute ? value : a.progress + value;
+          const unlocked = newProgress >= a.target;
+          return { ...a, progress: Math.min(a.target, newProgress), unlocked };
+        }
+        return a;
+      });
+      localStorage.setItem('nucleoEspaco_achievements', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
+  const handleDeflectObstacle = useCallback(() => {
+    updateQuestProgress('daily_defend_50', 1);
+    updateAchievementProgress('first_blood', 1);
+    updateAchievementProgress('deflect_100', 1);
+    soundEngine.triggerHaptic(15);
+  }, [updateQuestProgress, updateAchievementProgress]);
+
+  const handleEmpTriggered = useCallback(() => {
+    updateQuestProgress('daily_use_emp', 1);
+    updateAchievementProgress('emp_master', 1);
+    soundEngine.triggerHaptic([40, 30, 80]);
+  }, [updateQuestProgress, updateAchievementProgress]);
+
+  const handleBossDefeated = useCallback((bossName: string, rewardCredits: number) => {
+    updateAchievementProgress('boss_slayer', 1);
+    handleAwardCreditsInternal(rewardCredits);
+  }, [updateAchievementProgress]);
+
+  const handleAwardCreditsInternal = useCallback((amount: number) => {
+    setCredits(prev => {
+      const newVal = prev + amount;
+      localStorage.setItem('nucleoEspaco_credits', newVal.toString());
+      updateAchievementProgress('credits_collector', newVal, true);
+      return newVal;
+    });
+  }, [updateAchievementProgress]);
+
+  // Countdown before game start
+  const startCountdown = useCallback(() => {
     soundEngine.initAudio();
+    setCountdown(3);
+  }, []);
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown === 0) {
+      setCountdown(null);
+      handleStartGameInternal();
+      return;
+    }
+    const timer = setTimeout(() => {
+      soundEngine.playRouletteTick();
+      setCountdown(countdown - 1);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  const handleStartGameInternal = useCallback(() => {
     soundEngine.playGameMusic();
+    localStorage.setItem('nucleoEspaco_hasPlayed', 'true');
 
     isGameOverInProgressRef.current = false;
     let powerUpsToActivate: PowerUpType[] = [];
@@ -291,7 +419,7 @@ const App: React.FC = () => {
     }
     setActivePowerUps(powerUpsToActivate);
     setActivePowerUp(powerUpsToActivate[0] || 'NONE');
-    
+
     const initialTimers: Partial<Record<PowerUpType, number>> = {};
     powerUpsToActivate.forEach(p => {
       initialTimers[p] = POWER_UP_DURATION_SECONDS;
@@ -309,10 +437,18 @@ const App: React.FC = () => {
     startTimeRef.current = performance.now();
   }, [hasMultiBonus, equippedPowerUps, selectedPowerUp, maxHealth]);
 
+  const addGameHistoryEntry = useCallback((entry: GameHistoryEntry) => {
+    setGameHistory(prev => {
+      const updated = [entry, ...prev].slice(0, 20);
+      localStorage.setItem('nucleoEspaco_gameHistory', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const handleGameOver = useCallback(async (finalScore?: number) => {
     if (isGameOverInProgressRef.current) return;
     isGameOverInProgressRef.current = true;
-    
+
     soundEngine.stopGameMusic();
     setGameState(GameState.GAME_OVER);
     const timeAlive = Math.max(0.1, (performance.now() - startTimeRef.current) / 1000);
@@ -322,7 +458,7 @@ const App: React.FC = () => {
     const hasInstantCredits = activePowerUps.includes('INSTANT_CREDITS') || activePowerUp === 'INSTANT_CREDITS';
     const powerUpBonusMult = hasInstantCredits ? 1.5 : 1.0;
     const earnedFromScore = Math.max(0, Math.floor((actualScore / 10) * miningMultiplier * diffMultiplier * powerUpBonusMult));
-    
+
     setEarnedCredits(earnedFromScore);
     setCredits(prev => {
       const newVal = prev + earnedFromScore;
@@ -333,12 +469,25 @@ const App: React.FC = () => {
     setActivePowerUp('NONE');
     setActivePowerUps([]);
     setPowerUpTimers({});
-    
-    if (actualScore > highScore) { 
-      setHighScore(actualScore); 
-      localStorage.setItem('nucleoEspaco_highscore', actualScore.toString()); 
+
+    if (actualScore > highScore) {
+      setHighScore(actualScore);
+      localStorage.setItem('nucleoEspaco_highscore', actualScore.toString());
     }
-    
+
+    // Track level achievement
+    updateAchievementProgress('reach_lvl_10', level, true);
+
+    // Save to game history
+    addGameHistoryEntry({
+      score: actualScore,
+      level,
+      credits: earnedFromScore,
+      difficulty,
+      mode: gameMode,
+      date: new Date().toISOString(),
+    });
+
     setLoadingReport(true);
     try {
       const generatedReport = await generateBattleReport(actualScore, timeAlive);
@@ -352,19 +501,19 @@ const App: React.FC = () => {
     } finally {
       setLoadingReport(false);
     }
-  }, [score, highScore, upgrades.mining, difficulty, activePowerUps, activePowerUp]);
+  }, [score, level, highScore, upgrades.mining, difficulty, gameMode, activePowerUps, activePowerUp, updateAchievementProgress, addGameHistoryEntry]);
 
   const handleExitGame = useCallback(() => {
     isGameOverInProgressRef.current = false;
     soundEngine.stopGameMusic();
-    
+
     const actualScore = score;
     const diffMultiplier = DIFFICULTIES[difficulty]?.creditsMultiplier || 1.0;
     const miningMultiplier = 1 + (upgrades.mining * UPGRADES.MINING.bonusPerLevel);
     const hasInstantCredits = activePowerUps.includes('INSTANT_CREDITS') || activePowerUp === 'INSTANT_CREDITS';
     const powerUpBonusMult = hasInstantCredits ? 1.5 : 1.0;
     const earnedFromScore = Math.max(0, Math.floor((actualScore / 10) * miningMultiplier * diffMultiplier * powerUpBonusMult));
-    
+
     if (earnedFromScore > 0) {
       setCredits(prev => {
         const newVal = prev + earnedFromScore;
@@ -373,9 +522,9 @@ const App: React.FC = () => {
       });
     }
 
-    if (actualScore > highScore) { 
-      setHighScore(actualScore); 
-      localStorage.setItem('nucleoEspaco_highscore', actualScore.toString()); 
+    if (actualScore > highScore) {
+      setHighScore(actualScore);
+      localStorage.setItem('nucleoEspaco_highscore', actualScore.toString());
     }
 
     setGameState(GameState.MENU);
@@ -502,27 +651,17 @@ const App: React.FC = () => {
   }, []);
 
   const handleResetAccount = useCallback(() => {
-    // Clear all storage
     const keys = [
-      'nucleoEspaco_credits',
-      'nucleoEspaco_extraSpins',
-      'nucleoEspaco_highscore',
-      'nucleoEspaco_upgrades',
-      'nucleoEspaco_themes',
-      'nucleoEspaco_currentTheme',
-      'nucleoEspaco_customSkin',
-      'nucleoEspaco_hasMultiBonus',
-      'nucleoEspaco_multiBonusSlots',
-      'nucleoEspaco_equippedPowerUps',
-      'nucleoEspaco_quests',
-      'nucleoEspaco_achievements',
-      'nucleoEspaco_gameMode',
-      'nucleoEspaco_difficulty',
-      'nucleoEspaco_colorblind',
+      'nucleoEspaco_credits', 'nucleoEspaco_extraSpins', 'nucleoEspaco_highscore',
+      'nucleoEspaco_upgrades', 'nucleoEspaco_themes', 'nucleoEspaco_currentTheme',
+      'nucleoEspaco_customSkin', 'nucleoEspaco_hasMultiBonus', 'nucleoEspaco_multiBonusSlots',
+      'nucleoEspaco_equippedPowerUps', 'nucleoEspaco_quests', 'nucleoEspaco_achievements',
+      'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
+      'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
+      'nucleoEspaco_hasPlayed', 'nucleoEspaco_questDate', 'nucleoEspaco_gameHistory',
     ];
     keys.forEach(k => localStorage.removeItem(k));
 
-    // Reset states to brand new starting values
     setCredits(0);
     setHighScore(0);
     setExtraSpins(0);
@@ -545,9 +684,10 @@ const App: React.FC = () => {
     setEmpEnergy(0);
     setBossState(null);
     setReport(null);
-    setQuests(INITIAL_QUESTS.map(q => ({ ...q, progress: 0, completed: false, claimed: false })));
+    setQuests(INITIAL_QUESTS.map(q => ({ ...q, current: 0, completed: false, claimed: false })));
     setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a, progress: 0, unlocked: false })));
-    
+    setGameHistory([]);
+
     soundEngine.playLevelUp();
   }, []);
 
@@ -595,7 +735,12 @@ const App: React.FC = () => {
     setAchievements(prev => {
       const updated = prev.map(a => {
         if (a.id === achId && a.unlocked) {
-          return a;
+          setCredits(c => {
+            const nc = c + a.rewardCredits;
+            localStorage.setItem('nucleoEspaco_credits', nc.toString());
+            return nc;
+          });
+          return { ...a, unlocked: true };
         }
         return a;
       });
@@ -604,79 +749,92 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleDismissTutorial = useCallback(() => {
+    setShowTutorial(false);
+    localStorage.setItem('nucleoEspaco_hasPlayed', 'true');
+  }, []);
+
+  // Boss damage tracking for quest
+  const handleBossDamageForQuest = useCallback((damage: number) => {
+    updateQuestProgress('daily_boss_damage', damage);
+  }, [updateQuestProgress]);
+
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black selection:bg-sky-500/30">
-      <div className="absolute inset-0 bg-cover bg-center z-0 opacity-80" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?q=80&w=2672&auto=format&fit=crop")' }} />
+      <div className="absolute inset-0 bg-cover bg-center z-0 opacity-80" style={{ backgroundImage: 'url("/bg-space.webp")' }} />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 via-indigo-950/30 to-slate-900/80 z-0 mix-blend-multiply pointer-events-none"></div>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] z-0 pointer-events-none"></div>
-      
-      <GameCanvas 
+
+      <GameCanvas
         gameState={gameState}
         gameMode={gameMode}
-        activePowerUp={activePowerUp} 
-        activePowerUps={activePowerUps} 
-        powerUpTimers={powerUpTimers} 
+        activePowerUp={activePowerUp}
+        activePowerUps={activePowerUps}
+        powerUpTimers={powerUpTimers}
         currentTheme={currentTheme}
         customSkin={customSkin}
         difficulty={difficulty}
-        highPerformance={highPerformance} 
-        maxHealth={maxHealth} 
+        highPerformance={highPerformance}
+        maxHealth={maxHealth}
         upgrades={upgrades}
-        onScoreUpdate={setScore} 
-        onHealthUpdate={setHealth} 
+        onScoreUpdate={setScore}
+        onHealthUpdate={setHealth}
         onLevelUpdate={setLevel}
-        onGameOver={handleGameOver} 
+        onGameOver={handleGameOver}
         setShieldAngleRef={(ref) => { shieldAngleRef.current = ref; }}
         colorBlindMode={colorBlindMode}
         onEmpEnergyUpdate={setEmpEnergy}
         registerEmpTrigger={(fn) => { triggerEmpFnRef.current = fn; }}
         onBossStateUpdate={setBossState}
+        onDeflectObstacle={handleDeflectObstacle}
+        onEmpTriggered={handleEmpTriggered}
+        onBossDefeated={handleBossDefeated}
       />
 
-      <GameUI 
-        gameState={gameState} 
+      <GameUI
+        gameState={gameState}
         gameMode={gameMode}
         onGameModeChange={(m) => { setGameMode(m); localStorage.setItem('nucleoEspaco_gameMode', m); }}
-        score={score} 
-        health={health} 
-        maxHealth={maxHealth} 
+        score={score}
+        health={health}
+        maxHealth={maxHealth}
         level={level}
-        highScore={highScore} 
-        credits={credits} 
-        upgrades={upgrades} 
+        highScore={highScore}
+        credits={credits}
+        upgrades={upgrades}
         earnedCredits={earnedCredits}
         difficulty={difficulty}
         onDifficultyChange={(d) => { setDifficulty(d); localStorage.setItem('nucleoEspaco_difficulty', d); }}
-        extraSpins={extraSpins} 
-        onBuySpins={handleBuySpins} 
+        extraSpins={extraSpins}
+        onBuySpins={handleBuySpins}
         onUseExtraSpin={handleUseExtraSpin}
         onAwardCredits={handleAwardCredits}
-        hasMultiBonus={hasMultiBonus} 
-        multiBonusSlots={multiBonusSlots} 
+        hasMultiBonus={hasMultiBonus}
+        multiBonusSlots={multiBonusSlots}
         equippedPowerUps={equippedPowerUps}
-        onBuyMultiBonus={handleBuyMultiBonus} 
+        onBuyMultiBonus={handleBuyMultiBonus}
         onToggleEquipPowerUp={handleToggleEquipPowerUp}
-        onEquipAllPowerUps={handleEquipAllPowerUps} 
+        onEquipAllPowerUps={handleEquipAllPowerUps}
         onClearEquippedPowerUps={handleClearEquippedPowerUps}
-        report={report} 
-        loadingReport={loadingReport} 
-        activePowerUp={activePowerUp} 
+        report={report}
+        loadingReport={loadingReport}
+        activePowerUp={activePowerUp}
         activePowerUps={activePowerUps}
         powerUpTimers={powerUpTimers}
-        currentTheme={currentTheme} 
-        unlockedThemes={unlockedThemes} 
+        currentTheme={currentTheme}
+        unlockedThemes={unlockedThemes}
         onBuyTheme={handleBuyTheme}
-        customSkin={customSkin} 
+        customSkin={customSkin}
         onCustomSkinChange={handleCustomSkinChange}
         onThemeChange={(t) => { setCurrentTheme(t); localStorage.setItem('nucleoEspaco_currentTheme', t); }}
-        onBuyUpgrade={handleBuyUpgrade} 
-        highPerformance={highPerformance} 
-        onPerformanceChange={setHighPerformance}
-        colorBlindMode={colorBlindMode} 
+        onBuyUpgrade={handleBuyUpgrade}
+        highPerformance={highPerformance}
+        onPerformanceChange={handleSetHighPerformance}
+        colorBlindMode={colorBlindMode}
         onColorBlindChange={(active) => { setColorBlindMode(active); localStorage.setItem('nucleoEspaco_colorblind', active.toString()); }}
         onStart={() => {
           if (gameState === GameState.GAME_OVER) setGameState(GameState.MENU);
-          else handleStartGame();
+          else startCountdown();
         }}
         onExitGame={handleExitGame}
         onPowerUpSelected={handlePowerUpWon}
@@ -694,6 +852,12 @@ const App: React.FC = () => {
         onToggleSfx={handleToggleSfx}
         onToggleMusic={handleToggleMusic}
         onResetAccount={handleResetAccount}
+        countdown={countdown}
+        showTutorial={showTutorial}
+        onDismissTutorial={handleDismissTutorial}
+        onPause={handlePause}
+        onResume={handleResume}
+        gameHistory={gameHistory}
       />
     </div>
   );

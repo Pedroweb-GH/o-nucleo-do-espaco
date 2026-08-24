@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  GameState, GameReport, PowerUpType, PowerUpConfig, ThemeType, UpgradesState, 
-  DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement 
+import {
+  GameState, GameReport, PowerUpType, PowerUpConfig, ThemeType, UpgradesState,
+  DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement
 } from '../types';
 import { THEMES, UPGRADES, DIFFICULTIES, GAME_MODES, PILOT_RANKS, BOSS_CONFIGS } from '../constants';
 import { soundEngine } from '../soundEngine';
-import { 
-  Loader2, Shield, Play, RotateCcw, Zap, Turtle, LayoutTemplate, Star, ShoppingBag, 
-  X, Clock, AlertTriangle, Layers, Palette, Cpu, Lock, Coins, ArrowUpCircle, 
+import {
+  Loader2, Shield, Play, RotateCcw, Zap, Turtle, LayoutTemplate, Star, ShoppingBag,
+  X, Clock, AlertTriangle, Layers, Palette, Cpu, Lock, Coins, ArrowUpCircle,
   Eye, Gauge, Settings, Maximize2, CheckCircle2, Sliders, Sparkles, Paintbrush, SlidersHorizontal,
   HeartPulse, Gift, Award, LogOut, Volume2, VolumeX, Music, Flame, Crosshair, Target, Compass,
-  Radio, Orbit, Trophy
+  Radio, Orbit, Trophy, Pause, HelpCircle, History
 } from 'lucide-react';
+import type { GameHistoryEntry } from '../App';
 
 interface GameUIProps {
   gameState: GameState;
@@ -73,6 +74,12 @@ interface GameUIProps {
   onToggleSfx: () => void;
   onToggleMusic: () => void;
   onResetAccount?: () => void;
+  countdown?: number | null;
+  showTutorial?: boolean;
+  onDismissTutorial?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
+  gameHistory?: GameHistoryEntry[];
 }
 
 export const WHEEL_SEGMENTS: {
@@ -225,7 +232,8 @@ const GameUI: React.FC<GameUIProps> = ({
   currentTheme, unlockedThemes, onBuyTheme, onThemeChange, customSkin = { coreColor: '#a855f7', shieldColor: '#06b6d4', pattern: 'ENERGY_MATRIX' }, onCustomSkinChange,
   onBuyUpgrade, highPerformance, onPerformanceChange, colorBlindMode, onColorBlindChange,
   empEnergy, onTriggerEmp, bossState, quests, onClaimQuest, achievements, onClaimAchievement,
-  sfxMuted, musicMuted, onToggleSfx, onToggleMusic, onResetAccount
+  sfxMuted, musicMuted, onToggleSfx, onToggleMusic, onResetAccount,
+  countdown, showTutorial, onDismissTutorial, onPause, onResume, gameHistory = []
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -716,6 +724,30 @@ const GameUI: React.FC<GameUIProps> = ({
                 <p className="text-sm text-slate-300 italic leading-relaxed">"{report?.message || "Sinal perdido..."}"</p>
               )}
             </div>
+            {/* Game History / Leaderboard */}
+            {gameHistory.length > 1 && (
+              <div className="bg-black/40 rounded-lg p-3 mb-4 text-left border border-slate-800">
+                <div className="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-wider flex items-center gap-1.5">
+                  <History size={12} />
+                  <span>Últimas Partidas</span>
+                </div>
+                <div className="space-y-1 max-h-28 overflow-y-auto">
+                  {gameHistory.slice(0, 5).map((entry, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-[11px] py-1 border-b border-slate-800/50 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 font-mono w-4">{idx + 1}.</span>
+                        <span className="text-white font-bold">{entry.score.toLocaleString()}</span>
+                        <span className="text-slate-500">Nv{entry.level}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-yellow-400 font-mono">+{entry.credits}</span>
+                        <span className="text-slate-600 text-[9px]">{new Date(entry.date).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <button onClick={() => { setWheelResult('NONE'); onStart(); }} className="w-full flex items-center justify-center px-8 py-4 font-bold text-slate-900 transition-all duration-200 bg-white rounded-xl hover:bg-slate-200 hover:scale-[1.02]"><RotateCcw className="w-5 h-5 mr-2" />REINICIAR JOGO</button>
           </div>
         </div>
@@ -728,14 +760,14 @@ const GameUI: React.FC<GameUIProps> = ({
           {/* Modal de Missões & Troféus */}
           {isMissionsOpen && (
             <div className="bg-[#020617] border-2 border-slate-600 p-0 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.9)] max-w-lg w-full text-center border-b-4 border-b-emerald-500 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-hidden flex flex-col relative z-50">
-               <div className="flex justify-between items-center p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30">
-                      <Award size={18} className="text-emerald-400" /> 
+               <div className="flex justify-between items-center p-3 sm:p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30 shrink-0">
+                      <Award size={16} className="text-emerald-400" />
                     </div>
-                    <h2 className="text-lg text-white font-black uppercase tracking-widest">MISSÕES & CONQUISTAS</h2>
+                    <h2 className="text-sm sm:text-lg text-white font-black uppercase tracking-wider sm:tracking-widest truncate">MISSÕES & CONQUISTAS</h2>
                   </div>
-                  <button onClick={() => setIsMissionsOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700"><X size={18} /></button>
+                  <button onClick={() => setIsMissionsOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700 shrink-0 ml-2"><X size={18} /></button>
                </div>
 
                {/* Tabs */}
@@ -824,20 +856,29 @@ const GameUI: React.FC<GameUIProps> = ({
                       {achievements.map(a => {
                         const pct = Math.min(100, Math.round((a.progress / a.target) * 100));
                         return (
-                          <div key={a.id} className={`p-4 rounded-xl border transition-all ${a.unlocked ? 'bg-purple-950/20 border-purple-500/40' : 'bg-slate-900/60 border-slate-800'}`}>
+                          <div key={a.id} className={`p-3 sm:p-4 rounded-xl border transition-all ${a.unlocked ? 'bg-purple-950/20 border-purple-500/40' : 'bg-slate-900/60 border-slate-800'}`}>
                             <div className="flex items-start justify-between gap-2 mb-1">
-                              <div>
+                              <div className="min-w-0">
                                 <span className={`font-bold text-xs ${a.unlocked ? 'text-purple-300' : 'text-white'}`}>{a.title}</span>
                                 <p className="text-[11px] text-slate-400 mt-0.5">{a.description}</p>
                               </div>
-                              <span className="text-[11px] text-yellow-400 font-mono font-bold shrink-0">+{a.rewardCredits} CR</span>
+                              {a.unlocked ? (
+                                <button
+                                  onClick={() => onClaimAchievement(a.id)}
+                                  className="px-2.5 py-1.5 bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-[10px] rounded-lg shadow-lg shadow-purple-500/30 transition-all shrink-0"
+                                >
+                                  +{a.rewardCredits} CR
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-yellow-400 font-mono font-bold shrink-0">+{a.rewardCredits} CR</span>
+                              )}
                             </div>
                             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
                               <div className="h-full bg-purple-500 transition-all duration-300" style={{ width: `${pct}%` }} />
                             </div>
                             <div className="flex justify-between text-[10px] text-slate-500 font-mono mt-1">
-                              <span>Progresso: {a.progress} / {a.target}</span>
-                              <span>{a.unlocked ? 'Desbloqueado ✓' : `${pct}%`}</span>
+                              <span>{a.progress} / {a.target}</span>
+                              <span>{a.unlocked ? 'Concluído ✓' : `${pct}%`}</span>
                             </div>
                           </div>
                         );
@@ -880,14 +921,14 @@ const GameUI: React.FC<GameUIProps> = ({
           {/* Modal de Definições */}
           {isSettingsOpen && (
             <div className="bg-[#020617] border-2 border-slate-600 p-0 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.9)] max-w-md w-full text-center border-b-4 border-b-sky-500 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-hidden flex flex-col relative z-50">
-               <div className="flex justify-between items-center p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-400/30">
-                      <Settings size={18} className="text-sky-400 animate-[spin_10s_linear_infinite]"/> 
+               <div className="flex justify-between items-center p-3 sm:p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/20 flex items-center justify-center border border-sky-400/30 shrink-0">
+                      <Settings size={16} className="text-sky-400 animate-[spin_10s_linear_infinite]"/>
                     </div>
-                    <h2 className="text-lg text-white font-black uppercase tracking-widest">DEFINIÇÕES DO JOGO</h2>
+                    <h2 className="text-sm sm:text-lg text-white font-black uppercase tracking-wider sm:tracking-widest truncate">DEFINIÇÕES</h2>
                   </div>
-                  <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700"><X size={18} /></button>
+                  <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700 shrink-0 ml-2"><X size={18} /></button>
                </div>
 
                <div className="p-6 overflow-y-auto custom-scrollbar relative z-10 bg-[#020617] space-y-5 text-left">
@@ -1029,14 +1070,14 @@ const GameUI: React.FC<GameUIProps> = ({
           {/* Modal da Loja */}
           {isShopOpen && (
             <div className="bg-[#020617] border-2 border-slate-600 p-0 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.9)] max-w-lg w-full text-center border-b-4 border-b-amber-500 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-hidden flex flex-col relative z-50">
-               <div className="flex justify-between items-center p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center border border-amber-400/30">
-                      <ShoppingBag size={18} className="text-amber-400"/> 
+               <div className="flex justify-between items-center p-3 sm:p-5 border-b border-slate-800 shrink-0 bg-[#020617] relative z-20">
+                  <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 flex items-center justify-center border border-amber-400/30 shrink-0">
+                      <ShoppingBag size={16} className="text-amber-400"/>
                     </div>
-                    <h2 className="text-lg text-white font-black uppercase tracking-widest">LOJA & HANGAR</h2>
+                    <h2 className="text-sm sm:text-lg text-white font-black uppercase tracking-wider sm:tracking-widest truncate">LOJA & HANGAR</h2>
                   </div>
-                  <button onClick={() => { setIsShopOpen(false); setIsCustomizingSkin(false); }} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700"><X size={18} /></button>
+                  <button onClick={() => { setIsShopOpen(false); setIsCustomizingSkin(false); }} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700 shrink-0 ml-2"><X size={18} /></button>
                </div>
 
                <div className="p-5 overflow-y-auto custom-scrollbar relative z-10 bg-[#020617] space-y-6 text-left">
@@ -1352,9 +1393,124 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       )}
 
+      {/* Pause button in-game (top-left area, below health) */}
+      {gameState === GameState.PLAYING && (
+        <div className="fixed left-3 bottom-14 sm:left-auto sm:bottom-auto sm:top-4 sm:right-1/2 sm:translate-x-[220px] z-40 pointer-events-auto">
+          <button
+            onClick={onPause}
+            className="bg-slate-900/80 backdrop-blur border border-slate-700 hover:border-sky-400 p-2 rounded-full shadow-lg shadow-black/50 transition-all active:scale-95"
+            title="Pausar jogo (P)"
+          >
+            <Pause size={16} className="text-white" />
+          </button>
+        </div>
+      )}
+
+      {/* Pause Overlay */}
+      {gameState === GameState.PAUSED && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
+          <div className="text-center max-w-sm w-full mx-4">
+            <div className="bg-slate-950/95 border-2 border-sky-500/50 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-sky-500/10">
+              <Pause size={48} className="text-sky-400 mx-auto mb-4" />
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-widest mb-2">PAUSA</h2>
+              <p className="text-xs text-slate-400 mb-6">O combate está em espera.</p>
+              <div className="space-y-3">
+                <button
+                  onClick={onResume}
+                  className="w-full py-3.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl font-black text-sm uppercase tracking-wider transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  <Play size={18} fill="currentColor" />
+                  Continuar a Jogar
+                </button>
+                <button
+                  onClick={() => { onExitGame?.(); }}
+                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <LogOut size={14} />
+                  Sair para o Menu
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-4">Prima P ou ESC para retomar</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Countdown Overlay */}
+      {countdown !== null && countdown !== undefined && countdown > 0 && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 pointer-events-none">
+          <div className="text-center">
+            <div className="text-8xl sm:text-9xl font-black text-white drop-shadow-[0_0_40px_rgba(56,189,248,0.8)] animate-pulse" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {countdown}
+            </div>
+            <p className="text-sm text-sky-400 font-bold tracking-widest uppercase mt-4">Preparar Defesas</p>
+          </div>
+        </div>
+      )}
+
+      {/* Tutorial Overlay */}
+      {showTutorial && gameState === GameState.MENU && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto p-4">
+          <div className="bg-slate-950/95 border-2 border-sky-500/40 rounded-2xl p-5 sm:p-8 max-w-md w-full shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center border border-sky-400/30">
+                <HelpCircle size={22} className="text-sky-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white tracking-wider">COMO JOGAR</h2>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Tutorial de Defesa do Núcleo</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-300">
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield size={16} className="text-pink-400 shrink-0" />
+                  <span className="font-bold text-white text-sm">Objetivo</span>
+                </div>
+                <p>Protege o núcleo central dos projéteis com o teu escudo. Se a integridade chegar a 0%, a partida termina.</p>
+              </div>
+
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Crosshair size={16} className="text-sky-400 shrink-0" />
+                  <span className="font-bold text-white text-sm">Controlos</span>
+                </div>
+                <div className="space-y-1.5">
+                  <p><span className="hidden sm:inline"><strong>Rato:</strong> Move o cursor para rodar o escudo</span><span className="sm:hidden"><strong>Toque:</strong> Arrasta o dedo para rodar o escudo</span></p>
+                  <p className="hidden sm:inline-block"><strong>Teclado:</strong> Setas ←→ ou A/D para rodar</p>
+                  <p><strong>EMP:</strong> <span className="hidden sm:inline">Espaço ou Clique Direito</span><span className="sm:hidden">2 dedos em simultâneo</span> (quando carregado a 100%)</p>
+                  <p className="hidden sm:inline-block"><strong>Pausa:</strong> P ou ESC</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap size={16} className="text-amber-400 shrink-0" />
+                  <span className="font-bold text-white text-sm">Dicas</span>
+                </div>
+                <ul className="space-y-1.5 list-disc list-inside">
+                  <li>Gira a roleta antes de jogar para ganhar bónus</li>
+                  <li>Compra melhorias na Loja com os teus créditos</li>
+                  <li>Completa missões diárias para recompensas extra</li>
+                  <li>A cada 5 níveis aparece um Chefe Cósmico</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              onClick={onDismissTutorial}
+              className="w-full mt-5 py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl font-black text-sm uppercase tracking-wider transition-all"
+            >
+              Entendido — Vamos Jogar!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Guidance text at bottom */}
       <div className="w-full text-center pointer-events-none opacity-50 absolute bottom-14 sm:bottom-6 left-0 z-0">
-        {gameState === GameState.PLAYING && <p className="text-[10px] sm:text-xs text-white tracking-widest uppercase animate-pulse"><span className="hidden sm:inline">Move o cursor para rodar o escudo</span><span className="sm:hidden">Toca e arrasta para rodar o escudo</span></p>}
+        {gameState === GameState.PLAYING && <p className="text-[10px] sm:text-xs text-white tracking-widest uppercase animate-pulse"><span className="hidden sm:inline">Move o cursor para rodar o escudo · P para pausar</span><span className="sm:hidden">Toca e arrasta para rodar o escudo</span></p>}
       </div>
 
       {/* Modal de Confirmação para Sair do Jogo */}

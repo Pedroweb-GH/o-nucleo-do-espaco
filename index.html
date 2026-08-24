@@ -1,19 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Núcleo do Espaço">
+    <meta name="description" content="Defende o núcleo da estação espacial contra ondas de detritos cósmicos. Jogo arcade de defesa orbital com chefes, power-ups e leaderboard.">
+    <meta name="theme-color" content="#0f172a">
+    <meta property="og:title" content="O Núcleo do Espaço">
+    <meta property="og:description" content="Jogo arcade de defesa orbital — protege o núcleo contra meteoros, inimigos e chefes cósmicos!">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nucleo.psdeck.com">
+    <meta property="og:image" content="https://nucleo.psdeck.com/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="O Núcleo do Espaço">
+    <meta name="twitter:description" content="Jogo arcade de defesa orbital — protege o núcleo contra meteoros, inimigos e chefes cósmicos!">
+    <meta name="twitter:image" content="https://nucleo.psdeck.com/og-image.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <title>O Núcleo do Espaço</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
         margin: 0;
         overflow: hidden;
-        background-color: #0f172a; /* slate-900 */
-        touch-action: none; /* Prevent scroll on mobile */
-        user-select: none; /* Prevent text selection */
+        background-color: #0f172a;
+        touch-action: none;
+        user-select: none;
         -webkit-user-select: none;
       }
     </style>
@@ -30,7 +44,13 @@
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;height:100dvh;color:#e2e8f0;font-family:system-ui,sans-serif;gap:16px">
+        <div style="font-size:2.5rem;font-weight:700;letter-spacing:-0.02em">O Núcleo do Espaço</div>
+        <div style="width:48px;height:48px;border:3px solid rgba(99,102,241,0.3);border-top-color:#818cf8;border-radius:50%;animation:spin .7s linear infinite"></div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Custom animation keyframes for UI transitions */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: var(--tw-enter-translate, ) var(--tw-enter-scale, ) var(--tw-enter-rotate, );
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: 0;
+    transform: var(--tw-exit-translate, ) var(--tw-exit-scale, ) var(--tw-exit-rotate, );
+  }
+}
+
+@utility animate-in {
+  animation-name: enter;
+  animation-duration: 150ms;
+  --tw-enter-opacity: initial;
+  --tw-enter-scale: initial;
+  --tw-enter-rotate: initial;
+  --tw-enter-translate: initial;
+}
+
+@utility fade-in {
+  --tw-enter-opacity: 0;
+}
+
+@utility zoom-in-95 {
+  --tw-enter-scale: scale(0.95);
+}
+
+@utility zoom-in {
+  --tw-enter-scale: scale(0.5);
+}
+
+@utility slide-in-from-left {
+  --tw-enter-translate: translateX(-100%);
+}
+
+@utility slide-in-from-right {
+  --tw-enter-translate: translateX(100%);
+}
+
+@utility slide-in-from-bottom {
+  --tw-enter-translate: translateY(100%);
+}
+
+@utility slide-in-from-top {
+  --tw-enter-translate: translateY(-100%);
+}
+
+/* Custom scrollbar for modals */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 2px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.5);
+}

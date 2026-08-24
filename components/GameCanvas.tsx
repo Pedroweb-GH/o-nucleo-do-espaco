@@ -246,31 +246,38 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     starsRef.current = stars;
   }, [highPerformance]);
 
+  const prevGameStateRef = useRef<GameState>(gameState);
   useEffect(() => {
+    const prevState = prevGameStateRef.current;
+    prevGameStateRef.current = gameState;
+
     if (gameState === GameState.PLAYING) {
-      gameOverFiredRef.current = false;
-      scoreRef.current = 0;
-      healthRef.current = maxHealth;
-      levelRef.current = 1;
-      obstaclesRef.current = [];
-      particlesRef.current = [];
-      floatingTextsRef.current = [];
-      lastSpawnTimeRef.current = performance.now();
-      shakeIntensityRef.current = 0;
-      invulnerabilityTimerRef.current = 0;
-      bossRef.current = null;
-      lastBossSpawnLevelRef.current = 0;
-      onScoreUpdate(0);
-      onHealthUpdate(maxHealth);
-      onLevelUpdate(1);
-      onBossStateChange?.(null);
+      // Only reset game state when starting fresh (from MENU), not when resuming from PAUSED
+      if (prevState !== GameState.PAUSED) {
+        gameOverFiredRef.current = false;
+        scoreRef.current = 0;
+        healthRef.current = maxHealth;
+        levelRef.current = 1;
+        obstaclesRef.current = [];
+        particlesRef.current = [];
+        floatingTextsRef.current = [];
+        lastSpawnTimeRef.current = performance.now();
+        shakeIntensityRef.current = 0;
+        invulnerabilityTimerRef.current = 0;
+        bossRef.current = null;
+        lastBossSpawnLevelRef.current = 0;
+        onScoreUpdate(0);
+        onHealthUpdate(maxHealth);
+        onLevelUpdate(1);
+        onBossStateChange?.(null);
 
-      // Start synth background music
-      soundEngine.startMusic();
-
-      if (gameMode === 'BOSS_RUSH') {
-        spawnBoss(1, window.innerWidth, window.innerHeight);
+        if (gameMode === 'BOSS_RUSH') {
+          spawnBoss(1, window.innerWidth, window.innerHeight);
+        }
       }
+      soundEngine.startMusic();
+    } else if (gameState === GameState.PAUSED) {
+      soundEngine.stopMusic();
     } else {
       soundEngine.stopMusic();
     }
@@ -537,7 +544,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    const difficultyMultiplier = 1 + ((levelRef.current - 1) * 0.15); 
+    const timeRamp = Math.min(0.5, (scoreRef.current / 5000));
+    const difficultyMultiplier = 1 + ((levelRef.current - 1) * 0.15) + timeRamp;
     const spawnRate = Math.max(180, (diffConfig.spawnRateMs) / difficultyMultiplier);
     if (time - lastSpawnTimeRef.current > spawnRate) {
       spawnObstacle(width, height, difficultyMultiplier);
