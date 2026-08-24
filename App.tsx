@@ -187,6 +187,18 @@ const App: React.FC = () => {
     }
   }, [gameState]);
 
+  const handleToggleSfx = useCallback(() => {
+    const next = !sfxMuted;
+    setSfxMuted(next);
+    soundEngine.setMuted(next);
+  }, [sfxMuted]);
+
+  const handleToggleMusic = useCallback(() => {
+    const next = !musicMuted;
+    setMusicMuted(next);
+    soundEngine.setMusicMuted(next);
+  }, [musicMuted]);
+
   // Desktop Keyboard Shortcuts (Space for EMP, F for Fullscreen, M for Mute)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -591,18 +603,6 @@ const App: React.FC = () => {
       return updated;
     });
   }, []);
-
-  const handleToggleSfx = useCallback(() => {
-    const next = !sfxMuted;
-    setSfxMuted(next);
-    soundEngine.setMuted(next);
-  }, [sfxMuted]);
-
-  const handleToggleMusic = useCallback(() => {
-    const next = !musicMuted;
-    setMusicMuted(next);
-    soundEngine.setMusicMuted(next);
-  }, [musicMuted]);
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black selection:bg-sky-500/30">
