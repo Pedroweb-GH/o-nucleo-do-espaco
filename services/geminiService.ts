@@ -1,10 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { GameReport } from "../types";
 
 const getFallbackReport = (score: number, timeAlive: number): GameReport => {
   let rank = "Cadete Espacial";
   let message = "Tentativa corajosa, piloto. O núcleo sofreu danos críticos, mas os dados foram recuperados.";
-  
+
   if (score >= 3000) {
     rank = "Almirante Supremo da Frota";
     message = `Desempenho lendário! Conseguiste ${score} pontos e aguentaste ${timeAlive.toFixed(1)}s sob fogo intenso. O núcleo esteve em mãos de mestre.`;
@@ -21,7 +20,7 @@ const getFallbackReport = (score: number, timeAlive: number): GameReport => {
     rank = "Recruta de Defesa";
     message = `Impacto fatal precoce após apenas ${timeAlive.toFixed(1)}s. Lembra-te de rodar o escudo na direção certa antes do choque!`;
   }
-  
+
   return { rank, message };
 };
 
@@ -32,6 +31,7 @@ export const generateBattleReport = async (score: number, timeAlive: number): Pr
       return getFallbackReport(score, timeAlive);
     }
 
+    const { GoogleGenAI, Type } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
     const prompt = `
       O jogador acabou de terminar um jogo de "O Núcleo do Espaço" onde protege um núcleo de asteróides.
@@ -42,7 +42,7 @@ export const generateBattleReport = async (score: number, timeAlive: number): Pr
       Gera um relatório muito curto, estilo "Diário de Bordo" (Sci-Fi), em Português de Portugal (PT-PT), avaliando o desempenho.
       Se a pontuação for baixa (< 500), sê crítico/sarcástico mas divertido.
       Se a pontuação for alta (> 2000), mostra-te impressionado.
-      
+
       Atribui também uma patente militar/sci-fi baseada no desempenho (em Português).
     `;
 
@@ -64,7 +64,7 @@ export const generateBattleReport = async (score: number, timeAlive: number): Pr
 
     const jsonStr = response.text;
     if (!jsonStr) return getFallbackReport(score, timeAlive);
-    
+
     return JSON.parse(jsonStr) as GameReport;
 
   } catch (error) {
