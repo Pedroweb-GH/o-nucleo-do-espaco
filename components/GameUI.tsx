@@ -331,26 +331,26 @@ const GameUI: React.FC<GameUIProps> = ({
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start w-full pointer-events-auto relative z-10 p-6">
-        <div className="flex flex-col gap-2">
+      <div className="flex justify-between items-start w-full pointer-events-auto relative z-10 p-3 sm:p-6">
+        <div className="flex flex-col gap-2 min-w-0">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-widest flex items-center gap-2 shadow-black drop-shadow-md">
-              <Shield className="w-6 h-6 text-pink-400" />
-              O NÚCLEO<span className="text-sky-400"> DO ESPAÇO</span>
+            <h1 className="text-base sm:text-2xl font-bold text-white tracking-widest flex items-center gap-1.5 sm:gap-2 shadow-black drop-shadow-md">
+              <Shield className="w-4 h-4 sm:w-6 sm:h-6 text-pink-400 shrink-0" />
+              <span className="truncate">O NÚCLEO<span className="text-sky-400"> DO ESPAÇO</span></span>
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-slate-400 text-xs">SISTEMA DE DEFESA DO NÚCLEO</p>
-              <div className={`px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${DIFFICULTIES[difficulty].badgeBg}`}>
+            <div className="flex items-center gap-1.5 sm:gap-2 mt-1 flex-wrap">
+              <p className="text-slate-400 text-[10px] sm:text-xs hidden sm:block">SISTEMA DE DEFESA DO NÚCLEO</p>
+              <div className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1 ${DIFFICULTIES[difficulty].badgeBg}`}>
                 <Gauge size={11} />
                 <span>{DIFFICULTIES[difficulty].label}</span>
               </div>
-              <div className="px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 bg-slate-900/80 text-slate-300">
+              <div className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700 bg-slate-900/80 text-slate-300">
                 <span>{GAME_MODES[gameMode].name}</span>
               </div>
             </div>
           </div>
           {gameState !== GameState.MENU && (
-            <div className="mt-2 w-48 animate-in slide-in-from-left duration-500">
+            <div className="mt-2 w-32 sm:w-48 animate-in slide-in-from-left duration-500">
               <div className="flex justify-between text-[10px] text-slate-300 uppercase font-bold mb-1">
                 <span>Integridade</span>
                 <span className={health < 35 ? (colorBlindMode ? "text-orange-400" : "text-red-500") : "text-sky-400"}>{Math.max(0, Math.round(health))}/{Math.round(maxHealth)}</span>
@@ -386,15 +386,15 @@ const GameUI: React.FC<GameUIProps> = ({
 
         {/* Level and Exit Button when playing */}
         {gameState === GameState.PLAYING && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-0 mt-6 flex items-center gap-2.5">
-             <div className="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-1.5 rounded-full shadow-lg shadow-black/50 flex items-center gap-2">
+          <div className="fixed left-3 bottom-3 sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-0 sm:mt-6 flex items-center gap-1.5 sm:gap-2.5 z-30">
+             <div className="bg-slate-900/80 backdrop-blur border border-slate-700 px-3 sm:px-4 py-1.5 rounded-full shadow-lg shadow-black/50 flex items-center gap-1.5 sm:gap-2">
                 <Layers size={14} className="text-yellow-400" />
                 <span className="text-yellow-400 font-bold font-mono tracking-widest text-xs">NÍVEL {level}</span>
              </div>
              <button
                id="in-game-exit-btn"
                onClick={() => setShowExitConfirm(true)}
-               className="bg-rose-950/70 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-500/50 hover:border-rose-400 px-3.5 py-1.5 rounded-full shadow-lg shadow-rose-950/50 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 group cursor-pointer backdrop-blur"
+               className="bg-rose-950/70 hover:bg-rose-900/90 text-rose-300 hover:text-white border border-rose-500/50 hover:border-rose-400 px-3 sm:px-3.5 py-1.5 rounded-full shadow-lg shadow-rose-950/50 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 group cursor-pointer backdrop-blur"
                title="Abandonar combate e voltar ao menu"
              >
                <LogOut size={13} className="text-rose-400 group-hover:-translate-x-0.5 transition-transform" />
@@ -404,27 +404,28 @@ const GameUI: React.FC<GameUIProps> = ({
         )}
 
         {/* Right Header: Credits, Score, Audio & Power-ups */}
-        <div className="flex flex-col items-end gap-2">
-           <div className="flex items-center gap-2">
+        <div className="flex flex-col items-end gap-1.5 sm:gap-2 shrink-0">
+           <div className="flex items-center gap-1.5 sm:gap-2">
              {/* Audio Toggles */}
              <button
                onClick={onToggleSfx}
-               className={`p-1.5 rounded-lg border text-xs transition-colors backdrop-blur ${sfxMuted ? 'bg-slate-900/80 border-slate-800 text-slate-500' : 'bg-slate-900/80 border-sky-500/40 text-sky-400'}`}
+               className={`p-1 sm:p-1.5 rounded-lg border text-xs transition-colors backdrop-blur ${sfxMuted ? 'bg-slate-900/80 border-slate-800 text-slate-500' : 'bg-slate-900/80 border-sky-500/40 text-sky-400'}`}
                title={sfxMuted ? "Efeitos Sonoros Desativados" : "Efeitos Sonoros Ativados"}
              >
                {sfxMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
              </button>
              <button
                onClick={onToggleMusic}
-               className={`p-1.5 rounded-lg border text-xs transition-colors backdrop-blur ${musicMuted ? 'bg-slate-900/80 border-slate-800 text-slate-500' : 'bg-slate-900/80 border-purple-500/40 text-purple-400'}`}
+               className={`p-1 sm:p-1.5 rounded-lg border text-xs transition-colors backdrop-blur ${musicMuted ? 'bg-slate-900/80 border-slate-800 text-slate-500' : 'bg-slate-900/80 border-purple-500/40 text-purple-400'}`}
                title={musicMuted ? "Música Espacial Desativada" : "Música Espacial Ativada"}
              >
                <Music size={14} />
              </button>
 
-             <div className="flex items-center gap-2 bg-slate-900/80 backdrop-blur border border-yellow-500/40 px-3 py-1.5 rounded-lg shadow-lg shadow-yellow-500/10">
-                <Coins size={15} className="text-yellow-400 animate-pulse" />
-                <span className="text-yellow-400 font-mono text-sm font-black tracking-wider flex items-center gap-1">
+             <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-900/80 backdrop-blur border border-yellow-500/40 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg shadow-lg shadow-yellow-500/10">
+                <Coins size={13} className="text-yellow-400 animate-pulse sm:hidden" />
+                <Coins size={15} className="text-yellow-400 animate-pulse hidden sm:block" />
+                <span className="text-yellow-400 font-mono text-xs sm:text-sm font-black tracking-wider flex items-center gap-1">
                   {credits >= 999999999 ? (
                     <>
                       <span className="text-lg leading-none">∞</span>
@@ -438,8 +439,8 @@ const GameUI: React.FC<GameUIProps> = ({
            </div>
            
            <div className="text-right">
-            <div className="text-3xl font-mono text-white font-bold drop-shadow-md">{score.toLocaleString()}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-wider">Pontuação Atual</div>
+            <div className="text-xl sm:text-3xl font-mono text-white font-bold drop-shadow-md">{score.toLocaleString()}</div>
+            <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider">Pontuação</div>
           </div>
           
           {/* Active Power-Ups Tray */}
@@ -500,27 +501,28 @@ const GameUI: React.FC<GameUIProps> = ({
 
       {/* In-Game EMP Super Ability Button (Bottom Right) */}
       {gameState === GameState.PLAYING && (
-        <div className="fixed bottom-6 right-6 z-40 pointer-events-auto flex flex-col items-end gap-2 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-2 animate-in slide-in-from-bottom duration-300">
           <button
             id="in-game-emp-btn"
             onClick={onTriggerEmp}
             disabled={empEnergy < 100}
-            className={`relative group px-5 py-3.5 rounded-2xl flex items-center gap-3 transition-all duration-300 font-black text-xs uppercase tracking-wider ${
+            className={`relative group px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl flex items-center gap-2 sm:gap-3 transition-all duration-300 font-black text-[10px] sm:text-xs uppercase tracking-wider ${
               empEnergy >= 100
                 ? 'bg-gradient-to-r from-sky-400 via-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.8)] scale-105 animate-pulse cursor-pointer hover:scale-110'
                 : 'bg-slate-950/80 backdrop-blur border border-slate-800 text-slate-500 cursor-not-allowed opacity-85'
             }`}
           >
             <div className="relative">
-              <Zap size={20} className={empEnergy >= 100 ? 'text-slate-950 animate-bounce' : 'text-sky-500'} />
+              <Zap size={18} className={empEnergy >= 100 ? 'text-slate-950 animate-bounce' : 'text-sky-500'} />
             </div>
             <div className="text-left">
               <div className="flex items-center gap-1.5">
-                <span>ONDA DE CHOQUE EMP</span>
-                <span className="font-mono text-[11px]">{Math.round(empEnergy)}%</span>
+                <span className="hidden sm:inline">ONDA DE CHOQUE EMP</span>
+                <span className="sm:hidden">EMP</span>
+                <span className="font-mono text-[10px] sm:text-[11px]">{Math.round(empEnergy)}%</span>
               </div>
               <span className="text-[9px] font-normal normal-case block opacity-80">
-                {empEnergy >= 100 ? 'PRONTO! Pressiona ESPAÇO ou CLIQUE' : 'Carrega ao defender disparos'}
+                {empEnergy >= 100 ? 'PRONTO! Toca para ativar' : 'Carrega ao defender'}
               </span>
             </div>
           </button>
@@ -668,26 +670,27 @@ const GameUI: React.FC<GameUIProps> = ({
       {/* Game Over Modal */}
       {gameState === GameState.GAME_OVER && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-auto z-20 bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">
-          <div className="bg-[#020617] border border-red-900/50 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
-             <div className="flex justify-center mb-4 text-red-500">
-               <AlertTriangle size={48} className="animate-pulse" />
+          <div className="bg-[#020617] border border-red-900/50 p-4 sm:p-8 rounded-2xl shadow-2xl max-w-md w-full text-center mx-3 max-h-[90vh] overflow-y-auto">
+             <div className="flex justify-center mb-3 sm:mb-4 text-red-500">
+               <AlertTriangle size={36} className="animate-pulse sm:hidden" />
+               <AlertTriangle size={48} className="animate-pulse hidden sm:block" />
              </div>
-            <h2 className="text-4xl text-white font-bold mb-1 tracking-tighter">FALHA CRÍTICA</h2>
-            <div className="flex items-center justify-center gap-2 mb-6">
+            <h2 className="text-2xl sm:text-4xl text-white font-bold mb-1 tracking-tighter">FALHA CRÍTICA</h2>
+            <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
               <p className="text-red-400 text-xs uppercase tracking-widest">Integridade do Núcleo: 0%</p>
               <span className="text-slate-600">•</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${DIFFICULTIES[difficulty].badgeBg}`}>
                 {DIFFICULTIES[difficulty].label}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div className="bg-black/60 border border-slate-700 p-4 rounded-xl shadow-inner">
-                <div className="text-xs text-slate-400 font-bold tracking-wider mb-1">PONTUAÇÃO</div>
-                <div className="text-3xl text-white font-mono font-black tracking-tight">{score.toLocaleString()}</div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-black/60 border border-slate-700 p-3 sm:p-4 rounded-xl shadow-inner">
+                <div className="text-[10px] sm:text-xs text-slate-400 font-bold tracking-wider mb-1">PONTUAÇÃO</div>
+                <div className="text-xl sm:text-3xl text-white font-mono font-black tracking-tight">{score.toLocaleString()}</div>
               </div>
-              <div className="bg-black/60 border border-slate-700 p-4 rounded-xl shadow-inner">
-                <div className="text-xs text-slate-400 font-bold tracking-wider mb-1">RECORDE</div>
-                <div className="text-3xl text-yellow-400 font-mono font-black tracking-tight">{highScore.toLocaleString()}</div>
+              <div className="bg-black/60 border border-slate-700 p-3 sm:p-4 rounded-xl shadow-inner">
+                <div className="text-[10px] sm:text-xs text-slate-400 font-bold tracking-wider mb-1">RECORDE</div>
+                <div className="text-xl sm:text-3xl text-yellow-400 font-mono font-black tracking-tight">{highScore.toLocaleString()}</div>
               </div>
             </div>
             <div className="mb-6">
@@ -1350,8 +1353,8 @@ const GameUI: React.FC<GameUIProps> = ({
       )}
 
       {/* Guidance text at bottom */}
-      <div className="w-full text-center pointer-events-none opacity-50 absolute bottom-6 left-0 z-0">
-        {gameState === GameState.PLAYING && <p className="text-xs text-white tracking-widest uppercase animate-pulse">Move o cursor para rodar o escudo</p>}
+      <div className="w-full text-center pointer-events-none opacity-50 absolute bottom-14 sm:bottom-6 left-0 z-0">
+        {gameState === GameState.PLAYING && <p className="text-[10px] sm:text-xs text-white tracking-widest uppercase animate-pulse"><span className="hidden sm:inline">Move o cursor para rodar o escudo</span><span className="sm:hidden">Toca e arrasta para rodar o escudo</span></p>}
       </div>
 
       {/* Modal de Confirmação para Sair do Jogo */}

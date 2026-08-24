@@ -99,6 +99,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Keyboard controls state (Left/Right arrow or A/D keys for desktop play)
   const keysDownRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
 
+  // Touch controls: track target angle from finger position
+  const touchTargetAngleRef = useRef<number | null>(null);
+
   // Register external trigger for EMP (from UI button)
   const triggerEmpShockwave = () => {
     if (gameState !== GameState.PLAYING) return;
@@ -190,6 +193,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [gameState, empEnergy]);
+
+  // Mobile touch controls: drag finger to aim shield
+  useEffect(() => {
+    const updateTouchAngle = (e: TouchEvent) => {
+      if (gameState !== GameState.PLAYING) return;
+      const touch = e.touches[0];
+      if (!touch) { touchTargetAngleRef.current = null; return; }
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      touchTargetAngleRef.current = Math.atan2(touch.clientY - cy, touch.clientX - cx);
+    };
+    const clearTouch = () => { touchTargetAngleRef.current = null; };
+
+    window.addEventListener('touchstart', updateTouchAngle, { passive: true });
+    window.addEventListener('touchmove', updateTouchAngle, { passive: true });
+    window.addEventListener('touchend', clearTouch, { passive: true });
+    window.addEventListener('touchcancel', clearTouch, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', updateTouchAngle);
+      window.removeEventListener('touchmove', updateTouchAngle);
+      window.removeEventListener('touchend', clearTouch);
+      window.removeEventListener('touchcancel', clearTouch);
+    };
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState === GameState.PLAYING) {
@@ -377,13 +404,19 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
     if (invulnerabilityTimerRef.current > 0) invulnerabilityTimerRef.current -= 16.6;
 
-    // Desktop Keyboard Shield Rotation (Left/Right Arrows or A/D keys)
+    // Shield Rotation: keyboard (desktop) + touch (mobile)
     if (gameState === GameState.PLAYING) {
       if (keysDownRef.current.left) {
         shieldAngleRef.current -= 0.055;
       }
       if (keysDownRef.current.right) {
         shieldAngleRef.current += 0.055;
+      }
+      if (touchTargetAngleRef.current !== null) {
+        let diff = touchTargetAngleRef.current - shieldAngleRef.current;
+        while (diff > Math.PI) diff -= 2 * Math.PI;
+        while (diff < -Math.PI) diff += 2 * Math.PI;
+        shieldAngleRef.current += diff * 0.18;
       }
     }
 
