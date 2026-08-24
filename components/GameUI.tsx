@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   GameState, GameReport, PowerUpType, PowerUpConfig, ThemeType, UpgradesState,
   DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement
@@ -363,17 +363,92 @@ const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: 
 
 const DISPLAY_SEGMENTS = 12;
 const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean, lastResult: PowerUpType }> = ({ onComplete, spinning, lastResult }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [resultData, setResultData] = useState<typeof WHEEL_SEGMENTS[0] | null>(null);
 
   const visibleSegments = WHEEL_SEGMENTS.slice(0, DISPLAY_SEGMENTS);
-  const segmentAngle = 360 / DISPLAY_SEGMENTS;
-  const conicGradient = visibleSegments.map((seg, i) => {
-    const start = i * segmentAngle;
-    const end = (i + 1) * segmentAngle;
-    return `${seg.color} ${start}deg ${end}deg`;
-  }).join(', ');
+  const segmentAngle = (2 * Math.PI) / DISPLAY_SEGMENTS;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const size = 300;
+    canvas.width = size;
+    canvas.height = size;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 4;
+
+    ctx.clearRect(0, 0, size, size);
+
+    visibleSegments.forEach((seg, i) => {
+      const startAngle = i * segmentAngle - Math.PI / 2;
+      const endAngle = startAngle + segmentAngle;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, startAngle, endAngle);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(
+        cx + Math.cos(startAngle) * r,
+        cy + Math.sin(startAngle) * r
+      );
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const midAngle = startAngle + segmentAngle / 2;
+      const textR = r * 0.65;
+      const tx = cx + Math.cos(midAngle) * textR;
+      const ty = cy + Math.sin(midAngle) * textR;
+
+      ctx.save();
+      ctx.translate(tx, ty);
+      const textAngle = midAngle + Math.PI / 2;
+      const flip = midAngle > 0 && midAngle < Math.PI;
+      ctx.rotate(flip ? textAngle + Math.PI : textAngle);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(seg.shortLabel, 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    });
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#facc15';
+    ctx.font = 'bold 16px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⚡', cx, cy);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  }, []);
 
   useEffect(() => {
     if (spinning) {
@@ -381,7 +456,8 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
       setResultData(null);
       const randomIdx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
       const displayIdx = randomIdx % DISPLAY_SEGMENTS;
-      const targetAngle = displayIdx * segmentAngle + segmentAngle / 2;
+      const segAngleDeg = 360 / DISPLAY_SEGMENTS;
+      const targetAngle = displayIdx * segAngleDeg + segAngleDeg / 2;
       const newRotation = rotation + 1440 + (360 - targetAngle);
       setRotation(newRotation);
 
@@ -408,45 +484,13 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
           <div className="w-0 h-0 border-l-[11px] border-l-transparent border-t-[18px] border-t-amber-400 border-r-[11px] border-r-transparent filter drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]"></div>
         </div>
 
-        <div
-          className="w-full h-full rounded-full border-4 border-slate-800 overflow-hidden shadow-[0_0_25px_rgba(0,0,0,0.8)] relative transition-transform duration-[3200ms] ease-[cubic-bezier(0.2,0.85,0.25,1)]"
-          style={{
-            transform: `rotate(-${rotation}deg)`,
-            background: `conic-gradient(${conicGradient})`
-          }}
-        >
-          {visibleSegments.map((_, i) => (
-            <div
-              key={i}
-              className="absolute top-0 left-1/2 w-0.5 h-1/2 origin-bottom bg-black/30"
-              style={{ transform: `translateX(-50%) rotate(${i * segmentAngle}deg)` }}
-            />
-          ))}
-
-          {visibleSegments.map((seg, idx) => {
-            const deg = idx * segmentAngle + segmentAngle / 2;
-            const SegIcon = seg.Icon;
-            return (
-              <div
-                key={seg.type}
-                className="absolute top-0 left-1/2 w-8 h-1/2 origin-bottom -translate-x-1/2 flex flex-col items-center pt-3 text-white pointer-events-none"
-                style={{ transform: `translateX(-50%) rotate(${deg}deg)` }}
-              >
-                <div className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] flex flex-col items-center">
-                  <SegIcon size={15} />
-                  <span className="text-[7px] font-black tracking-tight uppercase mt-0.5 whitespace-nowrap drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">{seg.shortLabel}</span>
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-slate-900 border-2 border-slate-700 shadow-inner flex items-center justify-center z-20">
-            <Zap size={14} className="text-yellow-400 animate-pulse" />
-          </div>
-        </div>
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full rounded-full shadow-[0_0_25px_rgba(0,0,0,0.8)] transition-transform duration-[3200ms] ease-[cubic-bezier(0.2,0.85,0.25,1)]"
+          style={{ transform: `rotate(-${rotation}deg)` }}
+        />
       </div>
 
-      {/* Result Card */}
       {showResult && resultSeg && (
         <div className="mt-3 w-full animate-in zoom-in-95 fade-in duration-300">
           <div className="flex items-center gap-3 p-3 rounded-xl border-2 shadow-lg" style={{ borderColor: resultSeg.color, backgroundColor: resultSeg.color + '15' }}>
