@@ -35,7 +35,9 @@ const App: React.FC = () => {
   const [report, setReport] = useState<GameReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpType>('NONE');
-  const [selectedPowerUp, setSelectedPowerUp] = useState<PowerUpType>('NONE');
+  const [selectedPowerUp, setSelectedPowerUp] = useState<PowerUpType>(() => {
+    return (localStorage.getItem('nucleoEspaco_selectedPowerUp') as PowerUpType) || 'NONE';
+  });
   const [hasMultiBonus, setHasMultiBonus] = useState(false);
   const [multiBonusSlots, setMultiBonusSlots] = useState<number>(0);
   const [equippedPowerUps, setEquippedPowerUps] = useState<PowerUpType[]>([]);
@@ -635,6 +637,7 @@ const App: React.FC = () => {
 
   const handlePowerUpWon = useCallback((type: PowerUpType) => {
     setSelectedPowerUp(type);
+    localStorage.setItem('nucleoEspaco_selectedPowerUp', type);
     if (type !== 'NONE') {
       setUnlockedPowerUps(prev => {
         if (prev.includes(type)) return prev;
@@ -673,7 +676,7 @@ const App: React.FC = () => {
       'nucleoEspaco_credits', 'nucleoEspaco_extraSpins', 'nucleoEspaco_highscore',
       'nucleoEspaco_upgrades', 'nucleoEspaco_themes', 'nucleoEspaco_currentTheme',
       'nucleoEspaco_customSkin', 'nucleoEspaco_hasMultiBonus', 'nucleoEspaco_multiBonusSlots',
-      'nucleoEspaco_equippedPowerUps', 'nucleoEspaco_unlockedPowerUps', 'nucleoEspaco_quests', 'nucleoEspaco_achievements',
+      'nucleoEspaco_equippedPowerUps', 'nucleoEspaco_unlockedPowerUps', 'nucleoEspaco_selectedPowerUp', 'nucleoEspaco_quests', 'nucleoEspaco_achievements',
       'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
       'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
       'nucleoEspaco_hasPlayed', 'nucleoEspaco_questDate', 'nucleoEspaco_gameHistory',
