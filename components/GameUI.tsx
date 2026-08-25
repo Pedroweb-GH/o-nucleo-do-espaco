@@ -534,7 +534,8 @@ const GameUI: React.FC<GameUIProps> = ({
   const [wonPowerUps, setWonPowerUps] = useState<PowerUpType[]>([]);
 
   const isSpinsCooldown = spinsCooldownUntil > 0 && Date.now() < spinsCooldownUntil;
-  const hasAvailableSpins = isSpinsCooldown ? false : (!hasSpun || extraSpins > 0);
+  const freeSpinAvailable = !hasSpun && !isSpinsCooldown;
+  const hasAvailableSpins = freeSpinAvailable || extraSpins > 0;
 
   const addToast = (text: string, color: string, icon: string = '✨') => {
     const id = Math.random().toString(36);
@@ -585,9 +586,14 @@ const GameUI: React.FC<GameUIProps> = ({
 
   const handleWheelComplete = (result: PowerUpType) => {
     setIsSpinning(false);
+    const wasFreeSppin = !hasSpun;
     setHasSpun(true);
     localStorage.setItem('nucleoEspaco_hasSpun', 'true');
     setWheelResult(result);
+
+    if (wasFreeSppin) {
+      onStartSpinsCooldown();
+    }
 
     const miningMultiplier = 1 + (upgrades.mining * UPGRADES.MINING.bonusPerLevel);
     const isCreditsReward = result === 'INSTANT_CREDITS' || result === 'JACKPOT_CREDITS';
@@ -607,10 +613,6 @@ const GameUI: React.FC<GameUIProps> = ({
 
     if (hasMultiBonus && !isCreditsReward && result !== 'NONE') {
       if (onPowerUpSelected) onPowerUpSelected(result);
-    }
-
-    if (extraSpins <= 0) {
-      onStartSpinsCooldown();
     }
   };
 
@@ -1550,26 +1552,25 @@ const GameUI: React.FC<GameUIProps> = ({
                         >
                           <Play size={14} fill="currentColor" />
                           <span>
-                            {isSpinning 
-                              ? 'A girar roleta...' 
-                              : hasSpun 
-                              ? (extraSpins > 0 ? `Girar Novamente (${extraSpins} extra${extraSpins > 1 ? 's' : ''})` : (isSpinsCooldown ? 'Espera 24h por giros' : 'Sem Giros Extras'))
+                            {isSpinning
+                              ? 'A girar roleta...'
+                              : extraSpins > 0
+                              ? `Girar (${extraSpins} extra${extraSpins > 1 ? 's' : ''})`
+                              : isSpinsCooldown
+                              ? 'Giro grátis em 24h'
+                              : hasSpun
+                              ? 'Sem Giros Extras'
                               : 'Girar Roleta Grátis'}
                           </span>
                         </button>
 
                         <button
                           onClick={() => onBuySpins(5, 15000)}
-                          disabled={isSpinsCooldown}
-                          className={`py-3 px-3.5 rounded-xl font-bold text-xs border transition-colors flex items-center gap-1 shrink-0 ${
-                            isSpinsCooldown
-                              ? 'bg-slate-900 text-slate-600 border-slate-700 cursor-not-allowed'
-                              : 'bg-slate-800 hover:bg-slate-700 text-yellow-400 border-yellow-500/30'
-                          }`}
-                          title={isSpinsCooldown ? 'Giros em espera — volta amanhã!' : 'Comprar +5 Giros por 15.000 Créditos'}
+                          className="py-3 px-3.5 rounded-xl font-bold text-xs border transition-colors flex items-center gap-1 shrink-0 bg-slate-800 hover:bg-slate-700 text-yellow-400 border-yellow-500/30"
+                          title="Comprar +5 Giros por 15.000 Créditos"
                         >
                           <RotateCcw size={13} />
-                          <span>{isSpinsCooldown ? 'Espera 24h' : '+5 Giros (15k)'}</span>
+                          <span>+5 Giros (15k)</span>
                         </button>
                      </div>
                   </div>

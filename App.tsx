@@ -575,7 +575,6 @@ const App: React.FC = () => {
   }, [credits, upgrades]);
 
   const handleBuySpins = useCallback((spinsCount: number = 5, price: number = 15000) => {
-    if (Date.now() < spinsCooldownUntil) return;
     if (credits >= price) {
       const newCredits = credits - price;
       setCredits(newCredits);
@@ -586,7 +585,7 @@ const App: React.FC = () => {
         return newVal;
       });
     }
-  }, [credits, spinsCooldownUntil]);
+  }, [credits]);
 
   const handleBuyMultiBonus = useCallback((slots: 5 | 8, price: number = 30000) => {
     if (credits >= price) {
@@ -754,7 +753,7 @@ const App: React.FC = () => {
               return nc;
             });
           }
-          if (q.rewardSpins > 0 && Date.now() >= spinsCooldownUntil) {
+          if (q.rewardSpins > 0) {
             setExtraSpins(s => {
               const ns = s + q.rewardSpins;
               localStorage.setItem('nucleoEspaco_extraSpins', ns.toString());
