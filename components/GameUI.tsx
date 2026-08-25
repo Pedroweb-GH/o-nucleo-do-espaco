@@ -531,6 +531,7 @@ const GameUI: React.FC<GameUIProps> = ({
     return saved;
   });
   const [wheelResult, setWheelResult] = useState<PowerUpType>('NONE');
+  const [wonPowerUps, setWonPowerUps] = useState<PowerUpType[]>([]);
 
   const isSpinsCooldown = spinsCooldownUntil > 0 && Date.now() < spinsCooldownUntil;
   const hasAvailableSpins = isSpinsCooldown ? false : (!hasSpun || extraSpins > 0);
@@ -540,6 +541,12 @@ const GameUI: React.FC<GameUIProps> = ({
     setToasts(prev => [...prev.slice(-3), { id, text, color, icon }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
+
+  useEffect(() => {
+    if (!hasMultiBonus && wonPowerUps.length === 1 && !isSpinning && !hasAvailableSpins) {
+      handleChooseWonPowerUp(wonPowerUps[0]);
+    }
+  }, [wonPowerUps, isSpinning, hasAvailableSpins, hasMultiBonus]);
 
   useEffect(() => {
     if (combo > bestCombo) setBestCombo(combo);
@@ -581,9 +588,9 @@ const GameUI: React.FC<GameUIProps> = ({
     setHasSpun(true);
     localStorage.setItem('nucleoEspaco_hasSpun', 'true');
     setWheelResult(result);
-    if (onPowerUpSelected) onPowerUpSelected(result);
 
     const miningMultiplier = 1 + (upgrades.mining * UPGRADES.MINING.bonusPerLevel);
+    const isCreditsReward = result === 'INSTANT_CREDITS' || result === 'JACKPOT_CREDITS';
 
     if (result === 'INSTANT_CREDITS' && onAwardCredits) {
       const bonusCr = Math.round(1500 * miningMultiplier);
@@ -594,9 +601,22 @@ const GameUI: React.FC<GameUIProps> = ({
       soundEngine.playLevelUp();
     }
 
+    if (!isCreditsReward && result !== 'NONE') {
+      setWonPowerUps(prev => [...prev, result]);
+    }
+
+    if (hasMultiBonus && !isCreditsReward && result !== 'NONE') {
+      if (onPowerUpSelected) onPowerUpSelected(result);
+    }
+
     if (extraSpins <= 0) {
       onStartSpinsCooldown();
     }
+  };
+
+  const handleChooseWonPowerUp = (type: PowerUpType) => {
+    if (onPowerUpSelected) onPowerUpSelected(type);
+    setWonPowerUps([]);
   };
 
   const getHealthColor = () => {
@@ -1496,6 +1516,27 @@ const GameUI: React.FC<GameUIProps> = ({
                      </div>
 
                      <Wheel onComplete={handleWheelComplete} spinning={isSpinning} lastResult={wheelResult} />
+
+                     {!hasMultiBonus && wonPowerUps.length > 1 && !isSpinning && (
+                       <div className="mt-3 p-3 bg-slate-800/80 border border-amber-500/30 rounded-xl">
+                         <p className="text-[11px] text-amber-300 font-bold uppercase tracking-wider mb-2 text-center">Escolhe o teu bónus:</p>
+                         <div className="flex flex-wrap gap-1.5 justify-center">
+                           {wonPowerUps.map((wp, i) => {
+                             const info = POWERUPS[wp];
+                             return (
+                               <button
+                                 key={`${wp}-${i}`}
+                                 onClick={() => handleChooseWonPowerUp(wp)}
+                                 className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 border"
+                                 style={{ backgroundColor: info.color + '22', borderColor: info.color + '66', color: info.color }}
+                               >
+                                 {info.label}
+                               </button>
+                             );
+                           })}
+                         </div>
+                       </div>
+                     )}
 
                      <div className="flex gap-2 mt-2">
                         <button
