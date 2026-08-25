@@ -677,7 +677,7 @@ const GameUI: React.FC<GameUIProps> = ({
         
         {/* Boss Health Bar on Top of HUD */}
         {gameState === GameState.PLAYING && bossState && bossState.active && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-4 w-full max-w-md px-4 flex flex-col items-center animate-in fade-in zoom-in-95 duration-300 z-30">
+          <div className="absolute left-1/2 -translate-x-1/2 top-14 sm:top-16 w-full max-w-md px-4 flex flex-col items-center animate-in fade-in zoom-in-95 duration-300 z-30">
             <div className="bg-slate-950/90 backdrop-blur-md border-2 border-red-500/70 p-3 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.4)] w-full">
               <div className="flex justify-between items-center mb-1.5">
                 <div className="flex items-center gap-2">
@@ -768,15 +768,23 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       </div>
 
-      {/* In-Game EMP Tap Target (centered on core) */}
-      {gameState === GameState.PLAYING && empEnergy >= 100 && (
+      {/* In-Game EMP Button (centered below core) */}
+      {gameState === GameState.PLAYING && (
         <div className="fixed inset-0 flex items-center justify-center z-40 pointer-events-none">
           <button
             id="in-game-emp-btn"
             onClick={onTriggerEmp}
-            className="pointer-events-auto w-20 h-20 rounded-full bg-transparent cursor-pointer"
-            aria-label="Ativar EMP"
-          />
+            disabled={empEnergy < 100}
+            className={`pointer-events-auto absolute rounded-full flex items-center justify-center gap-1 transition-all duration-300 ${
+              empEnergy >= 100
+                ? 'px-3 py-1.5 bg-sky-500/90 text-slate-950 shadow-[0_0_20px_rgba(56,189,248,0.7)] animate-pulse cursor-pointer hover:scale-110 font-black text-[10px] uppercase tracking-wider'
+                : 'px-2.5 py-1 bg-slate-950/70 backdrop-blur border border-slate-700 text-slate-500 cursor-default text-[10px] font-bold'
+            }`}
+            style={{ top: 'calc(50% + 55px)' }}
+          >
+            <Zap size={12} className={empEnergy >= 100 ? 'text-slate-950' : 'text-sky-600'} />
+            <span>{empEnergy >= 100 ? 'EMP!' : `${Math.round(empEnergy)}%`}</span>
+          </button>
         </div>
       )}
 
