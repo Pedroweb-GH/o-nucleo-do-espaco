@@ -86,7 +86,7 @@ const App: React.FC = () => {
     if (savedCredits) setCredits(parseInt(savedCredits, 10));
 
     const savedMode = localStorage.getItem('nucleoEspaco_gameMode');
-    if (savedMode && (savedMode === 'CLASSIC' || savedMode === 'SURVIVAL' || savedMode === 'BOSS_RUSH')) {
+    if (savedMode && (savedMode === 'CLASSIC' || savedMode === 'SURVIVAL' || savedMode === 'BOSS_RUSH' || savedMode === 'ZEN' || savedMode === 'TIME_ATTACK')) {
       setGameMode(savedMode as GameMode);
     }
 
@@ -477,7 +477,6 @@ const App: React.FC = () => {
       localStorage.setItem('nucleoEspaco_credits', newVal.toString());
       return newVal;
     });
-    setSelectedPowerUp('NONE');
     setActivePowerUp('NONE');
     setActivePowerUps([]);
     setPowerUpTimers({});
@@ -540,7 +539,6 @@ const App: React.FC = () => {
     }
 
     setGameState(GameState.MENU);
-    setSelectedPowerUp('NONE');
     setActivePowerUp('NONE');
     setActivePowerUps([]);
     setPowerUpTimers({});
@@ -621,9 +619,11 @@ const App: React.FC = () => {
         return next;
       });
     } else {
-      setSelectedPowerUp(prev => (prev === type ? 'NONE' : type));
+      const next = selectedPowerUp === type ? 'NONE' : type;
+      setSelectedPowerUp(next);
+      localStorage.setItem('nucleoEspaco_selectedPowerUp', next);
     }
-  }, [hasMultiBonus, multiBonusSlots]);
+  }, [hasMultiBonus, multiBonusSlots, selectedPowerUp]);
 
   const handleEquipAllPowerUps = useCallback((types: PowerUpType[]) => {
     setEquippedPowerUps(types);

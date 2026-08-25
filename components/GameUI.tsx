@@ -581,20 +581,6 @@ const GameUI: React.FC<GameUIProps> = ({
       const bonusCr = Math.round(5000 * miningMultiplier);
       onAwardCredits(bonusCr);
       soundEngine.playLevelUp();
-    } else if (result === 'SUPER_MEGA_CREDITS' && onAwardCredits) {
-      const bonusCr = Math.round(10000 * miningMultiplier);
-      onAwardCredits(bonusCr);
-      soundEngine.playLevelUp();
-    } else if (result === 'GIGA_JACKPOT' && onAwardCredits) {
-      const bonusCr = Math.round(25000 * miningMultiplier);
-      onAwardCredits(bonusCr);
-      soundEngine.playLevelUp();
-    } else if (result === 'EXTRA_SPINS_REWARD') {
-      onBuySpins(3, 0);
-      soundEngine.playLevelUp();
-    } else if (result === 'SUPER_SPINS_PACK') {
-      onBuySpins(10, 0);
-      soundEngine.playLevelUp();
     }
   };
 
