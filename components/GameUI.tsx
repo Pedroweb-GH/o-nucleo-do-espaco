@@ -1911,7 +1911,7 @@ const GameUI: React.FC<GameUIProps> = ({
                   O Miguel tem apenas 9 anos, mas a sua curiosidade pelo mundo não conhece limites. É daqueles miúdos que fazem mil perguntas, que querem saber como tudo funciona, e que não têm medo de explorar coisas novas.
                 </p>
                 <p className="text-sm text-slate-300 leading-relaxed mt-3">
-                  Quando não está a criar jogos no computador, o Miguel está no campo a jogar futsal com os amigos — rápido de pés e com uma energia que nunca acaba. Na escola, é um verdadeiro estrela: gosta de aprender, de participar, e de descobrir algo novo todos os dias.
+                  Quando não está a criar jogos no computador, o Miguel está no campo a jogar futsal com os amigos — com uma energia que nunca acaba. Na escola, é um verdadeiro estrela: gosta de aprender, de participar, e de descobrir algo novo todos os dias.
                 </p>
                 <p className="text-sm text-slate-300 leading-relaxed mt-3">
                   <span className="italic text-sky-300">O Núcleo do Espaço</span> nasceu dessa mesma curiosidade — a vontade de criar algo do zero e partilhá-lo com o mundo. Este jogo é a prova de que a idade é apenas um número quando tens imaginação e vontade de aprender.
