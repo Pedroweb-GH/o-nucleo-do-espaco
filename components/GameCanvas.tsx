@@ -115,7 +115,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Register external trigger for EMP (from UI button)
   const triggerEmpShockwave = () => {
     if (gameState !== GameState.PLAYING) return;
-    if (empEnergy < 100 && empShockwaveRef.current.active) return;
+    if (empEnergy < 100 || deflectComboRef.current < 4) return;
+    if (empShockwaveRef.current.active) return;
 
     soundEngine.playEMP();
     triggerShake(22);
@@ -182,7 +183,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (e.code === 'ArrowRight' || e.code === 'KeyD') {
         keysDownRef.current.right = true;
       }
-      if (e.code === 'Space' && gameState === GameState.PLAYING && empEnergy >= 100) {
+      if (e.code === 'Space' && gameState === GameState.PLAYING && empEnergy >= 100 && deflectComboRef.current >= 4) {
         e.preventDefault();
         triggerEmpShockwave();
       }
@@ -200,7 +201,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const handleContextMenu = (e: MouseEvent) => {
       if (gameState === GameState.PLAYING) {
         e.preventDefault();
-        if (empEnergy >= 100) {
+        if (empEnergy >= 100 && deflectComboRef.current >= 4) {
           triggerEmpShockwave();
         }
       }
