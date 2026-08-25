@@ -106,6 +106,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const totalDeflectsRef = useRef(0);
   const damageFlashRef = useRef(0);
 
+  const lastEmpTimeRef = useRef(0);
+
   // Keyboard controls state (Left/Right arrow or A/D keys for desktop play)
   const keysDownRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
 
@@ -117,7 +119,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (gameState !== GameState.PLAYING) return;
     if (empEnergy < 100 || deflectComboRef.current < 4) return;
     if (empShockwaveRef.current.active) return;
+    if (performance.now() - lastEmpTimeRef.current < 10000) return;
 
+    lastEmpTimeRef.current = performance.now();
     soundEngine.playEMP();
     triggerShake(22);
     empShockwaveRef.current = {
