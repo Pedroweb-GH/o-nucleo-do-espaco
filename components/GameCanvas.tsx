@@ -669,14 +669,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
 
-      // CORE_REPULSOR Power-up: Repels projectiles from approaching core too closely
+      // CORE_REPULSOR Power-up: periodic pulse pushes projectiles away (every 4s, lasts 0.5s)
       if (hasPowerUp('CORE_REPULSOR')) {
-        const toCoreX = obs.pos.x - width / 2;
-        const toCoreY = obs.pos.y - height / 2;
-        const distCore = Math.sqrt(toCoreX * toCoreX + toCoreY * toCoreY);
-        if (distCore > 0 && distCore < 110) {
-          obs.velocity.x += (toCoreX / distCore) * 0.18;
-          obs.velocity.y += (toCoreY / distCore) * 0.18;
+        const pulsePhase = (performance.now() % 4000) / 4000;
+        if (pulsePhase < 0.125) {
+          const toCoreX = obs.pos.x - width / 2;
+          const toCoreY = obs.pos.y - height / 2;
+          const distCore = Math.sqrt(toCoreX * toCoreX + toCoreY * toCoreY);
+          if (distCore > 0 && distCore < 130) {
+            const pushForce = 0.35 * (1 - pulsePhase / 0.125);
+            obs.velocity.x += (toCoreX / distCore) * pushForce;
+            obs.velocity.y += (toCoreY / distCore) * pushForce;
+          }
         }
       }
 
@@ -1274,15 +1278,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.restore();
     }
 
-    // Core Repulsor Kinetic Ring
+    // Core Repulsor Kinetic Ring (pulses every 4s)
     if (hasPowerUp('CORE_REPULSOR')) {
       ctx.save(); ctx.translate(cx, cy);
-      const pulseRep = (performance.now() / 250) % Math.PI;
-      const rRep = GAME_CONSTANTS.CORE_RADIUS + 15 + Math.sin(pulseRep) * 25;
-      ctx.beginPath(); ctx.arc(0, 0, rRep, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(162, 28, 175, ${0.6 - Math.sin(pulseRep) * 0.4})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      const pulsePhase = (performance.now() % 4000) / 4000;
+      if (pulsePhase < 0.125) {
+        const expand = pulsePhase / 0.125;
+        const rRep = GAME_CONSTANTS.CORE_RADIUS + 15 + expand * 115;
+        ctx.beginPath(); ctx.arc(0, 0, rRep, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(162, 28, 175, ${0.8 * (1 - expand)})`;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#a21caf';
+        ctx.stroke();
+      } else {
+        const idle = Math.sin(performance.now() / 600) * 0.15 + 0.2;
+        ctx.beginPath(); ctx.arc(0, 0, GAME_CONSTANTS.CORE_RADIUS + 12, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(162, 28, 175, ${idle})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
