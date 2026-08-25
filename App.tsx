@@ -672,14 +672,16 @@ const App: React.FC = () => {
     setExtraSpins(prev => {
       const newVal = Math.max(0, prev - 1);
       localStorage.setItem('nucleoEspaco_extraSpins', newVal.toString());
-      if (newVal === 0 && prev > 0) {
-        const cooldownEnd = Date.now() + 24 * 60 * 60 * 1000;
-        setSpinsCooldownUntil(cooldownEnd);
-        localStorage.setItem('nucleoEspaco_spinsCooldown', cooldownEnd.toString());
-      }
       return newVal;
     });
   }, []);
+
+  const handleStartSpinsCooldown = useCallback(() => {
+    if (spinsCooldownUntil > 0 && Date.now() < spinsCooldownUntil) return;
+    const cooldownEnd = Date.now() + 24 * 60 * 60 * 1000;
+    setSpinsCooldownUntil(cooldownEnd);
+    localStorage.setItem('nucleoEspaco_spinsCooldown', cooldownEnd.toString());
+  }, [spinsCooldownUntil]);
 
   const handleResetAccount = useCallback(() => {
     const keys = [
@@ -690,7 +692,7 @@ const App: React.FC = () => {
       'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
       'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
       'nucleoEspaco_hasPlayed', 'nucleoEspaco_questDate', 'nucleoEspaco_gameHistory',
-      'nucleoEspaco_spinsCooldown',
+      'nucleoEspaco_spinsCooldown', 'nucleoEspaco_hasSpun',
     ];
     keys.forEach(k => localStorage.removeItem(k));
 
@@ -855,6 +857,7 @@ const App: React.FC = () => {
         spinsCooldownUntil={spinsCooldownUntil}
         onBuySpins={handleBuySpins}
         onUseExtraSpin={handleUseExtraSpin}
+        onStartSpinsCooldown={handleStartSpinsCooldown}
         onAwardCredits={handleAwardCredits}
         hasMultiBonus={hasMultiBonus}
         multiBonusSlots={multiBonusSlots}

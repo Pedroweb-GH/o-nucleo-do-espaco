@@ -34,6 +34,7 @@ interface GameUIProps {
   spinsCooldownUntil: number;
   onBuySpins: (count: number, price: number) => void;
   onUseExtraSpin: () => void;
+  onStartSpinsCooldown: () => void;
   onAwardCredits?: (amount: number) => void;
   hasMultiBonus?: boolean;
   multiBonusSlots?: number;
@@ -497,7 +498,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
 const GameUI: React.FC<GameUIProps> = ({ 
   gameState, gameMode, onGameModeChange, score, health, maxHealth, level, highScore, credits, upgrades, difficulty, onDifficultyChange,
-  report, loadingReport, earnedCredits, extraSpins, spinsCooldownUntil, onBuySpins, onUseExtraSpin, onAwardCredits,
+  report, loadingReport, earnedCredits, extraSpins, spinsCooldownUntil, onBuySpins, onUseExtraSpin, onStartSpinsCooldown, onAwardCredits,
   hasMultiBonus, multiBonusSlots = 0, equippedPowerUps = [], unlockedPowerUps = [], onBuyMultiBonus, onToggleEquipPowerUp, onEquipAllPowerUps, onClearEquippedPowerUps,
   onStart, onExitGame, onPowerUpSelected, activePowerUp, activePowerUps = [], powerUpTimers = {},
   currentTheme, unlockedThemes, onBuyTheme, onThemeChange, customSkin = { coreColor: '#a855f7', shieldColor: '#06b6d4', pattern: 'ENERGY_MATRIX' }, onCustomSkinChange,
@@ -521,11 +522,18 @@ const GameUI: React.FC<GameUIProps> = ({
   
   // Wheel state
   const [isSpinning, setIsSpinning] = useState(false);
-  const [hasSpun, setHasSpun] = useState(false);
+  const [hasSpun, setHasSpun] = useState(() => {
+    const saved = localStorage.getItem('nucleoEspaco_hasSpun') === 'true';
+    if (saved && spinsCooldownUntil > 0 && Date.now() >= spinsCooldownUntil) {
+      localStorage.removeItem('nucleoEspaco_hasSpun');
+      return false;
+    }
+    return saved;
+  });
   const [wheelResult, setWheelResult] = useState<PowerUpType>('NONE');
 
   const isSpinsCooldown = spinsCooldownUntil > 0 && Date.now() < spinsCooldownUntil;
-  const hasAvailableSpins = !hasSpun || extraSpins > 0;
+  const hasAvailableSpins = isSpinsCooldown ? false : (!hasSpun || extraSpins > 0);
 
   const addToast = (text: string, color: string, icon: string = '✨') => {
     const id = Math.random().toString(36);
@@ -571,6 +579,7 @@ const GameUI: React.FC<GameUIProps> = ({
   const handleWheelComplete = (result: PowerUpType) => {
     setIsSpinning(false);
     setHasSpun(true);
+    localStorage.setItem('nucleoEspaco_hasSpun', 'true');
     setWheelResult(result);
     if (onPowerUpSelected) onPowerUpSelected(result);
 
@@ -583,6 +592,10 @@ const GameUI: React.FC<GameUIProps> = ({
       const bonusCr = Math.round(5000 * miningMultiplier);
       onAwardCredits(bonusCr);
       soundEngine.playLevelUp();
+    }
+
+    if (extraSpins <= 0) {
+      onStartSpinsCooldown();
     }
   };
 
