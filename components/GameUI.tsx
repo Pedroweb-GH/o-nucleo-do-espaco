@@ -365,7 +365,7 @@ const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />;
 };
 
-const DISPLAY_SEGMENTS = 12;
+const DISPLAY_SEGMENTS = WHEEL_SEGMENTS.length;
 const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean, lastResult: PowerUpType }> = ({ onComplete, spinning, lastResult }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
@@ -423,7 +423,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
       ctx.rotate(flip ? textAngle + Math.PI : textAngle);
 
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.font = 'bold 8px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(0,0,0,0.9)';

@@ -639,7 +639,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     let currentShieldArc = GAME_CONSTANTS.SHIELD_ARC;
-    if (hasPowerUp('WIDE_SHIELD')) currentShieldArc = Math.PI / 1.5;
+    if (hasPowerUp('WIDE_SHIELD')) currentShieldArc = Math.PI / 2;
+    const extraShieldArc = currentShieldArc * 0.5;
     const currentShieldRadius = hasPowerUp('MAGNET_SHIELD') ? GAME_CONSTANTS.SHIELD_RADIUS + 18 : GAME_CONSTANTS.SHIELD_RADIUS;
 
     obstaclesRef.current.forEach(obs => {
@@ -753,7 +754,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           let oppAngleDiff = obsAngle - (shieldAngleRef.current + Math.PI);
           while (oppAngleDiff > Math.PI) oppAngleDiff -= 2 * Math.PI;
           while (oppAngleDiff < -Math.PI) oppAngleDiff += 2 * Math.PI;
-          if (Math.abs(oppAngleDiff) < currentShieldArc / 2) {
+          if (Math.abs(oppAngleDiff) < extraShieldArc / 2) {
             isDeflected = true;
           }
         }
@@ -769,7 +770,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           while (diff2 > Math.PI) diff2 -= 2 * Math.PI;
           while (diff2 < -Math.PI) diff2 += 2 * Math.PI;
 
-          if (Math.abs(diff1) < currentShieldArc / 2 || Math.abs(diff2) < currentShieldArc / 2) {
+          if (Math.abs(diff1) < extraShieldArc / 2 || Math.abs(diff2) < extraShieldArc / 2) {
             isDeflected = true;
           }
         }
@@ -1176,7 +1177,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const currentShieldRadius = hasPowerUp('MAGNET_SHIELD') ? GAME_CONSTANTS.SHIELD_RADIUS + 18 : GAME_CONSTANTS.SHIELD_RADIUS;
     let shieldColor = currentTheme === 'CUSTOM' ? customSkin.shieldColor : themeColors.SHIELD;
     let shieldGlow = currentTheme === 'CUSTOM' ? customSkin.shieldColor : themeColors.SHIELD_GLOW;
-    if (hasPowerUp('WIDE_SHIELD')) currentShieldArc = Math.PI / 1.5;
+    if (hasPowerUp('WIDE_SHIELD')) currentShieldArc = Math.PI / 2;
+    const extraShieldArcRender = currentShieldArc * 0.5;
 
     // Draw Plasma Motion Trails for Shield
     if (!highPerformance && shieldTrailsRef.current.length > 0) {
@@ -1238,28 +1240,28 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.lineWidth = GAME_CONSTANTS.SHIELD_THICKNESS; ctx.lineCap = 'round'; ctx.shadowBlur = 15; ctx.shadowColor = shieldGlow; ctx.stroke();
     ctx.restore();
 
-    // Active Double Shield (180 degrees mirrored shield)
+    // Active Double Shield (180 degrees mirrored shield, narrower)
     if (hasPowerUp('DOUBLE_SHIELD')) {
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(shieldAngleRef.current + Math.PI);
-      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -currentShieldArc/2, currentShieldArc/2);
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -extraShieldArcRender/2, extraShieldArcRender/2);
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = GAME_CONSTANTS.SHIELD_THICKNESS; ctx.lineCap = 'round'; ctx.shadowBlur = 16; ctx.shadowColor = '#059669'; ctx.stroke();
       ctx.restore();
     }
 
-    // Active Triple Shield (3 shields spaced at 120 degrees)
+    // Active Triple Shield (3 shields spaced at 120 degrees, narrower extras)
     if (hasPowerUp('TRIPLE_SHIELD')) {
       const angleOffset1 = (2 * Math.PI) / 3;
       const angleOffset2 = (4 * Math.PI) / 3;
 
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(shieldAngleRef.current + angleOffset1);
-      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -currentShieldArc/2, currentShieldArc/2);
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -extraShieldArcRender/2, extraShieldArcRender/2);
       ctx.strokeStyle = '#14b8a6';
       ctx.lineWidth = GAME_CONSTANTS.SHIELD_THICKNESS; ctx.lineCap = 'round'; ctx.shadowBlur = 16; ctx.shadowColor = '#0d9488'; ctx.stroke();
       ctx.restore();
 
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(shieldAngleRef.current + angleOffset2);
-      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -currentShieldArc/2, currentShieldArc/2);
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -extraShieldArcRender/2, extraShieldArcRender/2);
       ctx.strokeStyle = '#06b6d4';
       ctx.lineWidth = GAME_CONSTANTS.SHIELD_THICKNESS; ctx.lineCap = 'round'; ctx.shadowBlur = 16; ctx.shadowColor = '#0891b2'; ctx.stroke();
       ctx.restore();
