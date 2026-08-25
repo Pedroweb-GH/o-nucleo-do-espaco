@@ -81,6 +81,9 @@ interface GameUIProps {
   onResume?: () => void;
   gameHistory?: GameHistoryEntry[];
   timeAttackRemaining?: number;
+  combo?: number;
+  damageFlash?: boolean;
+  totalDeflects?: number;
 }
 
 export const WHEEL_SEGMENTS: {
@@ -518,16 +521,19 @@ const GameUI: React.FC<GameUIProps> = ({
   empEnergy, onTriggerEmp, bossState, quests, onClaimQuest, achievements, onClaimAchievement,
   sfxMuted, musicMuted, onToggleSfx, onToggleMusic, onResetAccount,
   countdown, showTutorial, onDismissTutorial, onPause, onResume, gameHistory = [],
-  timeAttackRemaining = 90
+  timeAttackRemaining = 90, combo = 0, damageFlash = false, totalDeflects = 0
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isMissionsOpen, setIsMissionsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<'QUESTS' | 'ACHIEVEMENTS' | 'RANKS'>('QUESTS');
   const [isCustomizingSkin, setIsCustomizingSkin] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [toasts, setToasts] = useState<{id: string; text: string; color: string; icon: string}[]>([]);
+  const [bestCombo, setBestCombo] = useState(0);
   
   // Wheel state
   const [isSpinning, setIsSpinning] = useState(false);
@@ -535,6 +541,29 @@ const GameUI: React.FC<GameUIProps> = ({
   const [wheelResult, setWheelResult] = useState<PowerUpType>('NONE');
 
   const hasAvailableSpins = !hasSpun || extraSpins > 0;
+
+  const addToast = (text: string, color: string, icon: string = '✨') => {
+    const id = Math.random().toString(36);
+    setToasts(prev => [...prev.slice(-3), { id, text, color, icon }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  };
+
+  useEffect(() => {
+    if (combo > bestCombo) setBestCombo(combo);
+    if (combo === 5) addToast('Combo x5! Incrível!', '#facc15', '🔥');
+    else if (combo === 10) addToast('Combo x10! Imparável!', '#f97316', '⚡');
+    else if (combo === 20) addToast('Combo x20! LENDÁRIO!', '#ef4444', '🌟');
+  }, [combo]);
+
+  useEffect(() => {
+    if (gameState === GameState.PLAYING && level > 1) {
+      addToast(`Nível ${level} alcançado!`, '#facc15', '⬆️');
+    }
+  }, [level]);
+
+  useEffect(() => {
+    if (damageFlash) addToast('Núcleo atingido!', '#ef4444', '💥');
+  }, [damageFlash]);
 
   // Unclaimed rewards count
   const claimableQuestsCount = quests.filter(q => q.completed && !q.claimed).length;
@@ -622,6 +651,33 @@ const GameUI: React.FC<GameUIProps> = ({
 
       {health < 35 && gameState === GameState.PLAYING && (
         <div className={`absolute inset-0 pointer-events-none z-0 border-[20px] ${colorBlindMode ? 'border-orange-500/20' : 'border-red-600/20'} animate-pulse mix-blend-overlay`}></div>
+      )}
+
+      {/* Damage flash overlay */}
+      {damageFlash && gameState === GameState.PLAYING && (
+        <div className={`absolute inset-0 pointer-events-none z-[5] ${colorBlindMode ? 'bg-orange-500/20' : 'bg-red-500/20'} animate-[flash_0.4s_ease-out_forwards]`}></div>
+      )}
+
+      {/* Toast notifications */}
+      <div className="fixed top-16 sm:top-20 right-3 sm:right-6 z-[55] pointer-events-none flex flex-col gap-2 items-end">
+        {toasts.map(toast => (
+          <div key={toast.id} className="animate-in slide-in-from-right fade-in duration-300 bg-slate-950/90 backdrop-blur border border-slate-700 px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 text-xs">
+            <span>{toast.icon}</span>
+            <span className="font-bold" style={{ color: toast.color }}>{toast.text}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Combo display */}
+      {combo >= 3 && gameState === GameState.PLAYING && (
+        <div className="fixed bottom-24 sm:bottom-20 left-1/2 -translate-x-1/2 z-[15] pointer-events-none animate-in zoom-in-75 duration-200">
+          <div className={`text-center ${combo >= 10 ? 'scale-125' : ''} transition-transform`}>
+            <div className="text-2xl sm:text-3xl font-black tracking-wider" style={{ color: combo >= 20 ? '#ef4444' : combo >= 10 ? '#f97316' : '#facc15', textShadow: `0 0 20px ${combo >= 20 ? '#ef4444' : combo >= 10 ? '#f97316' : '#f59e0b'}` }}>
+              COMBO x{combo}
+            </div>
+            {combo >= 5 && <div className="text-[10px] text-amber-300 font-bold uppercase tracking-widest mt-0.5">{combo >= 20 ? 'LENDÁRIO' : combo >= 10 ? 'IMPARÁVEL' : 'INCRÍVEL'}</div>}
+          </div>
+        </div>
       )}
 
       {/* Header */}
@@ -915,11 +971,11 @@ const GameUI: React.FC<GameUIProps> = ({
                 INICIAR JOGO
              </button>
 
-             {/* Secondary Menu Buttons: Missões & Troféus, Definições, Loja */}
-             <div className="grid grid-cols-3 gap-2.5 mt-3.5 animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '280ms', animationFillMode: 'both' }}>
+             {/* Secondary Menu Buttons */}
+             <div className="grid grid-cols-4 gap-2 mt-3.5 animate-in fade-in slide-in-from-bottom duration-300" style={{ animationDelay: '280ms', animationFillMode: 'both' }}>
                <button
                  id="menu-missions-btn"
-                 onClick={() => { setIsMissionsOpen(true); setIsSettingsOpen(false); setIsShopOpen(false); }}
+                 onClick={() => { setIsMissionsOpen(true); setIsSettingsOpen(false); setIsShopOpen(false); setIsStatsOpen(false); }}
                  className="py-3 px-2 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 hover:from-slate-850 hover:to-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider border-2 border-slate-700 hover:border-emerald-400 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 hover:scale-[1.03] shadow-xl shadow-black/50 group relative"
                >
                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-400/30 group-hover:bg-emerald-500/30 transition-colors">
@@ -938,7 +994,7 @@ const GameUI: React.FC<GameUIProps> = ({
 
                <button
                  id="menu-settings-btn"
-                 onClick={() => { setIsSettingsOpen(true); setIsShopOpen(false); setIsMissionsOpen(false); }}
+                 onClick={() => { setIsSettingsOpen(true); setIsShopOpen(false); setIsMissionsOpen(false); setIsStatsOpen(false); }}
                  className="py-3 px-2 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 hover:from-slate-850 hover:to-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider border-2 border-slate-700 hover:border-sky-400 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 hover:scale-[1.03] shadow-xl shadow-black/50 group"
                >
                  <div className="w-8 h-8 rounded-xl bg-sky-500/20 flex items-center justify-center border border-sky-400/30 group-hover:bg-sky-500/30 transition-colors">
@@ -949,7 +1005,7 @@ const GameUI: React.FC<GameUIProps> = ({
 
                <button
                  id="menu-shop-btn"
-                 onClick={() => { setIsShopOpen(true); setIsSettingsOpen(false); setIsMissionsOpen(false); }}
+                 onClick={() => { setIsShopOpen(true); setIsSettingsOpen(false); setIsMissionsOpen(false); setIsStatsOpen(false); }}
                  className="py-3 px-2 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 hover:from-slate-850 hover:to-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider border-2 border-slate-700 hover:border-amber-400 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 hover:scale-[1.03] shadow-xl shadow-black/50 group relative"
                >
                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center border border-amber-400/30 group-hover:bg-amber-500/30 transition-colors">
@@ -962,6 +1018,16 @@ const GameUI: React.FC<GameUIProps> = ({
                      <span className="relative inline-flex rounded-full h-4 w-4 bg-amber-500 border-2 border-slate-950"></span>
                    </span>
                  )}
+               </button>
+
+               <button
+                 onClick={() => { setIsStatsOpen(true); setIsShopOpen(false); setIsSettingsOpen(false); setIsMissionsOpen(false); }}
+                 className="py-3 px-2 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 hover:from-slate-850 hover:to-slate-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider border-2 border-slate-700 hover:border-purple-400 transition-all duration-200 flex flex-col items-center justify-center gap-1.5 hover:scale-[1.03] shadow-xl shadow-black/50 group"
+               >
+                 <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center border border-purple-400/30 group-hover:bg-purple-500/30 transition-colors">
+                   <Trophy size={18} className="text-purple-400 group-hover:scale-110 transition-transform duration-300" />
+                 </div>
+                 <span className="block leading-none text-white text-xs font-bold">Stats</span>
                </button>
              </div>
 
@@ -1762,14 +1828,40 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       )}
 
-      {/* Pause Overlay */}
+      {/* Pause Overlay with Game Summary */}
       {gameState === GameState.PAUSED && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm pointer-events-auto">
           <div className="text-center max-w-sm w-full mx-4">
             <div className="bg-slate-950/95 border-2 border-sky-500/50 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-sky-500/10">
-              <Pause size={48} className="text-sky-400 mx-auto mb-4" />
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-widest mb-2">PAUSA</h2>
-              <p className="text-xs text-slate-400 mb-6">O combate está em espera.</p>
+              <Pause size={40} className="text-sky-400 mx-auto mb-3" />
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-widest mb-1">PAUSA</h2>
+              <p className="text-xs text-slate-400 mb-4">O combate está em espera.</p>
+
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+                  <div className="text-lg font-black text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>{score.toLocaleString()}</div>
+                  <div className="text-[9px] text-slate-500 uppercase font-bold">Pontos</div>
+                </div>
+                <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+                  <div className="text-lg font-black text-sky-400">Nv {level}</div>
+                  <div className="text-[9px] text-slate-500 uppercase font-bold">Nível</div>
+                </div>
+                <div className="bg-slate-900 rounded-xl p-2.5 border border-slate-800">
+                  <div className="text-lg font-black text-amber-400">x{bestCombo}</div>
+                  <div className="text-[9px] text-slate-500 uppercase font-bold">Melhor Combo</div>
+                </div>
+              </div>
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-800 flex items-center justify-center gap-1.5">
+                  <Shield size={12} className="text-pink-400" />
+                  <span className="text-xs text-slate-300 font-bold">{totalDeflects} defesas</span>
+                </div>
+                <div className="flex-1 bg-slate-900 rounded-lg p-2 border border-slate-800 flex items-center justify-center gap-1.5">
+                  <HeartPulse size={12} className={health > 50 ? 'text-emerald-400' : 'text-red-400'} />
+                  <span className="text-xs text-slate-300 font-bold">{Math.round(health)}% vida</span>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <button
                   onClick={onResume}
@@ -1779,7 +1871,7 @@ const GameUI: React.FC<GameUIProps> = ({
                   Continuar a Jogar
                 </button>
                 <button
-                  onClick={() => { onExitGame?.(); }}
+                  onClick={() => { setShowExitConfirm(true); }}
                   className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
                 >
                   <LogOut size={14} />
@@ -1804,60 +1896,87 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       )}
 
-      {/* Tutorial Overlay */}
+      {/* Interactive Tutorial Overlay */}
       {showTutorial && gameState === GameState.MENU && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto p-4">
           <div className="bg-slate-950/95 border-2 border-sky-500/40 rounded-2xl p-5 sm:p-8 max-w-md w-full shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center border border-sky-400/30">
-                <HelpCircle size={22} className="text-sky-400" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                <Shield size={24} className="text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white tracking-wider">COMO JOGAR</h2>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Tutorial de Defesa do Núcleo</p>
+                <h2 className="text-lg font-black text-white tracking-wider">BEM-VINDO, PILOTO!</h2>
+                <p className="text-[10px] text-sky-400 uppercase tracking-wider font-bold">Tutorial de Defesa do Núcleo</p>
               </div>
             </div>
 
-            <div className="space-y-4 text-xs text-slate-300">
-              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Shield size={16} className="text-pink-400 shrink-0" />
-                  <span className="font-bold text-white text-sm">Objetivo</span>
-                </div>
-                <p>Protege o núcleo central dos projéteis com o teu escudo. Se a integridade chegar a 0%, a partida termina.</p>
-              </div>
-
-              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Crosshair size={16} className="text-sky-400 shrink-0" />
-                  <span className="font-bold text-white text-sm">Controlos</span>
-                </div>
-                <div className="space-y-1.5">
-                  <p><span className="hidden sm:inline"><strong>Rato:</strong> Move o cursor para rodar o escudo</span><span className="sm:hidden"><strong>Toque:</strong> Arrasta o dedo para rodar o escudo</span></p>
-                  <p className="hidden sm:inline-block"><strong>Teclado:</strong> Setas ←→ ou A/D para rodar</p>
-                  <p><strong>EMP:</strong> <span className="hidden sm:inline">Espaço ou Clique Direito</span><span className="sm:hidden">2 dedos em simultâneo</span> (quando carregado a 100%)</p>
-                  <p className="hidden sm:inline-block"><strong>Pausa:</strong> P ou ESC</p>
+            <div className="space-y-3 text-xs text-slate-300">
+              {/* Step 1 */}
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-pink-500/30 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-pink-500"></div>
+                <div className="flex items-start gap-3 ml-2">
+                  <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center shrink-0 border border-pink-400/30">
+                    <span className="text-pink-400 font-black text-sm">1</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-white text-sm block mb-1">Protege o Núcleo</span>
+                    <p>O núcleo está no centro do ecrã. Usa o <strong className="text-pink-300">escudo</strong> para bloquear os projéteis que voam em direção a ele.</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-slate-900 rounded-xl p-3.5 border border-slate-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap size={16} className="text-amber-400 shrink-0" />
-                  <span className="font-bold text-white text-sm">Dicas</span>
+              {/* Step 2 */}
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-sky-500/30 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-sky-500"></div>
+                <div className="flex items-start gap-3 ml-2">
+                  <div className="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center shrink-0 border border-sky-400/30">
+                    <span className="text-sky-400 font-black text-sm">2</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-white text-sm block mb-1">Roda o Escudo</span>
+                    <div className="space-y-1">
+                      <p className="hidden sm:block"><strong className="text-sky-300">Rato:</strong> Move o cursor em volta do núcleo</p>
+                      <p className="hidden sm:block"><strong className="text-sky-300">Teclado:</strong> Setas ←→ ou teclas A / D</p>
+                      <p className="sm:hidden"><strong className="text-sky-300">Toque:</strong> Arrasta o dedo para rodar</p>
+                    </div>
+                  </div>
                 </div>
-                <ul className="space-y-1.5 list-disc list-inside">
-                  <li>Gira a roleta antes de jogar para ganhar bónus</li>
-                  <li>Compra melhorias na Loja com os teus créditos</li>
-                  <li>Completa missões diárias para recompensas extra</li>
-                  <li>A cada 5 níveis aparece um Chefe Cósmico</li>
-                </ul>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-amber-500/30 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                <div className="flex items-start gap-3 ml-2">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0 border border-amber-400/30">
+                    <span className="text-amber-400 font-black text-sm">3</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-white text-sm block mb-1">Poder EMP</span>
+                    <p>Cada deflexão carrega a <strong className="text-amber-300">energia EMP</strong>. A 100%, ativa com <span className="hidden sm:inline"><strong>Espaço</strong> ou <strong>Clique Direito</strong></span><span className="sm:hidden"><strong>2 dedos</strong></span> para destruir inimigos próximos!</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="bg-slate-900 rounded-xl p-3.5 border border-emerald-500/30 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                <div className="flex items-start gap-3 ml-2">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-400/30">
+                    <span className="text-emerald-400 font-black text-sm">4</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-white text-sm block mb-1">Evolui e Combate</span>
+                    <p>Ganha <strong className="text-emerald-300">créditos</strong> para comprar melhorias na <strong>Loja</strong>. Gira a <strong>Roleta</strong> para bónus. A cada 5 níveis, enfrenta um <strong className="text-red-300">Chefe Cósmico</strong>!</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <button
               onClick={onDismissTutorial}
-              className="w-full mt-5 py-3 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-xl font-black text-sm uppercase tracking-wider transition-all"
+              className="w-full mt-5 py-3.5 bg-gradient-to-r from-sky-500 to-purple-600 hover:from-sky-400 hover:to-purple-500 text-white rounded-xl font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-sky-500/20 flex items-center justify-center gap-2"
             >
+              <Play size={16} fill="currentColor" />
               Entendido — Vamos Jogar!
             </button>
           </div>
@@ -1900,6 +2019,111 @@ const GameUI: React.FC<GameUIProps> = ({
                 <span>Feito com amor e muita curiosidade</span>
                 <Heart size={12} className="text-pink-400" />
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Statistics Modal */}
+      {isStatsOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto p-4 animate-in fade-in duration-200">
+          <div className="bg-[#020617] border-2 border-purple-500/40 rounded-2xl p-0 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center border border-purple-400/30">
+                  <Trophy size={16} className="text-purple-400" />
+                </div>
+                <h2 className="text-lg text-white font-black uppercase tracking-widest">Estatísticas</h2>
+              </div>
+              <button onClick={() => setIsStatsOpen(false)} className="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-xl hover:bg-slate-700">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                  <div className="text-2xl font-black text-amber-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{highScore.toLocaleString()}</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mt-1">Recorde</div>
+                </div>
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                  <div className="text-2xl font-black text-sky-400" style={{ fontVariantNumeric: 'tabular-nums' }}>{credits.toLocaleString()}</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mt-1">Créditos</div>
+                </div>
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                  <div className="text-2xl font-black text-emerald-400">{gameHistory.length}</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mt-1">Partidas</div>
+                </div>
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                  <div className="text-2xl font-black text-purple-400">{currentRank.title.split(' ').slice(-1)[0]}</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mt-1">Rank</div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+                <h3 className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-3">Conquistas</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Star size={14} className="text-amber-400" />
+                    <div>
+                      <div className="text-sm font-bold text-white">{achievements.filter(a => a.unlocked).length}/{achievements.length}</div>
+                      <div className="text-[9px] text-slate-500">Desbloqueadas</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Zap size={14} className="text-sky-400" />
+                    <div>
+                      <div className="text-sm font-bold text-white">{Object.values(upgrades).reduce((a: number, b: number) => a + b, 0)}/20</div>
+                      <div className="text-[9px] text-slate-500">Melhorias</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Palette size={14} className="text-pink-400" />
+                    <div>
+                      <div className="text-sm font-bold text-white">{unlockedThemes.length}/{Object.keys(THEMES).length}</div>
+                      <div className="text-[9px] text-slate-500">Skins</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Flame size={14} className="text-red-400" />
+                    <div>
+                      <div className="text-sm font-bold text-white">x{bestCombo}</div>
+                      <div className="text-[9px] text-slate-500">Melhor Combo</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {gameHistory.length > 0 && (
+                <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
+                  <h3 className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-3">Últimas Partidas</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {gameHistory.slice(0, 8).map((entry, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs bg-slate-950 rounded-lg px-3 py-2 border border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500 font-mono text-[10px] w-4">#{idx + 1}</span>
+                          <span className="font-bold text-white">{entry.score.toLocaleString()}</span>
+                          <span className="text-slate-500">Nv{entry.level}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-400 text-[10px]">+{entry.credits} CR</span>
+                          <span className="text-slate-600 text-[9px]">{GAME_MODES[entry.mode]?.name || entry.mode}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {gameHistory.length > 0 && (
+                <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 text-center">
+                  <div className="text-xs text-slate-400">
+                    Pontuação média: <span className="text-white font-bold">{Math.round(gameHistory.reduce((a, e) => a + e.score, 0) / gameHistory.length).toLocaleString()}</span>
+                    {' · '}
+                    Nível médio: <span className="text-white font-bold">{Math.round(gameHistory.reduce((a, e) => a + e.level, 0) / gameHistory.length)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

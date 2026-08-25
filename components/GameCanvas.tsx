@@ -27,6 +27,9 @@ interface GameCanvasProps {
   onBossStateUpdate?: (boss: BossState | null) => void;
   onBossDefeated?: (bossName: string, rewardCredits: number) => void;
   onTimeUpdate?: (seconds: number) => void;
+  onComboUpdate?: (combo: number) => void;
+  onDamageFlash?: () => void;
+  onTotalDeflects?: (count: number) => void;
   setShieldAngleRef: (ref: React.MutableRefObject<number>) => void;
   colorBlindMode: boolean;
   registerEmpTrigger?: (triggerFn: () => void) => void;
@@ -42,6 +45,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   gameState, gameMode = 'CLASSIC', activePowerUp = 'NONE', activePowerUps = [], powerUpTimers = {}, currentTheme, customSkin = DEFAULT_CUSTOM_SKIN, difficulty, highPerformance, maxHealth, upgrades,
   empEnergy, onEmpEnergyUpdate, onEmpTriggered,
   onScoreUpdate, onHealthUpdate, onLevelUpdate, onGameOver, onDeflectObstacle, onBossStateChange, onBossStateUpdate, onBossDefeated, onTimeUpdate,
+  onComboUpdate, onDamageFlash, onTotalDeflects,
   setShieldAngleRef, colorBlindMode, registerEmpTrigger
 }) => {
   const notifyBossState = (boss: BossState | null) => {
@@ -98,6 +102,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Deflect combo tracker for dynamic audio
   const deflectComboRef = useRef(0);
   const lastDeflectTimeRef = useRef(0);
+  const totalDeflectsRef = useRef(0);
+  const damageFlashRef = useRef(0);
 
   // Keyboard controls state (Left/Right arrow or A/D keys for desktop play)
   const keysDownRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
@@ -278,6 +284,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         lastSpawnTimeRef.current = performance.now();
         shakeIntensityRef.current = 0;
         invulnerabilityTimerRef.current = 0;
+        damageFlashRef.current = 0;
+        deflectComboRef.current = 0;
+        totalDeflectsRef.current = 0;
         bossRef.current = null;
         lastBossSpawnLevelRef.current = 0;
         onScoreUpdate(0);
@@ -465,14 +474,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       }
     }
 
-    // Update Shield Trail
+    // Update Shield Trail + sparkle particles
     const currentAngle = shieldAngleRef.current;
-    if (Math.abs(currentAngle - lastShieldAngleRef.current) > 0.02) {
+    const angleDelta = Math.abs(currentAngle - lastShieldAngleRef.current);
+    if (angleDelta > 0.02) {
       shieldTrailsRef.current.push({
         angle: currentAngle,
         time,
         alpha: 0.6
       });
+      if (!highPerformance && angleDelta > 0.04 && gameState === GameState.PLAYING) {
+        const themeColors = THEMES[currentTheme] || THEMES.DEFAULT;
+        const sColor = currentTheme === 'CUSTOM' ? customSkin.shieldColor : themeColors.SHIELD;
+        const shieldR = hasPowerUp('MAGNET_SHIELD') ? GAME_CONSTANTS.SHIELD_RADIUS + 18 : GAME_CONSTANTS.SHIELD_RADIUS;
+        const sparkX = width / 2 + Math.cos(currentAngle) * shieldR;
+        const sparkY = height / 2 + Math.sin(currentAngle) * shieldR;
+        particlesRef.current.push({
+          id: Math.random().toString(),
+          pos: { x: sparkX, y: sparkY },
+          velocity: { x: (Math.random() - 0.5) * 1.5, y: (Math.random() - 0.5) * 1.5 },
+          radius: Math.random() * 2 + 0.5,
+          color: sColor,
+          life: 0.6, maxLife: 0.6, active: true
+        });
+      }
       lastShieldAngleRef.current = currentAngle;
     }
     shieldTrailsRef.current.forEach(t => { t.alpha -= 0.04; });
@@ -676,9 +701,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
           healthRef.current -= diffConfig.damage;
           triggerShake(20);
+          damageFlashRef.current = 1.0;
           createExplosion(width/2, height/2, themeColors.CORE, 20);
           soundEngine.playCoreHit();
           deflectComboRef.current = 0;
+          onComboUpdate?.(0);
+          onDamageFlash?.();
           onHealthUpdate(Math.max(0, healthRef.current));
           if (healthRef.current <= 0) {
             healthRef.current = 0;
@@ -781,6 +809,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           }
           lastDeflectTimeRef.current = now;
           soundEngine.playShieldBlock(deflectComboRef.current);
+          totalDeflectsRef.current += 1;
+          onComboUpdate?.(deflectComboRef.current);
+          onTotalDeflects?.(totalDeflectsRef.current);
 
           // Notify parent for Quest/Achievement progress
           onDeflectObstacle?.();
@@ -1364,6 +1395,32 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillText(ft.text, ft.x - (ctx.measureText(ft.text).width / 2), ft.y);
       ctx.restore();
     });
+
+    // Damage flash overlay
+    if (damageFlashRef.current > 0) {
+      ctx.save();
+      ctx.fillStyle = colorBlindMode ? `rgba(249, 115, 22, ${damageFlashRef.current * 0.35})` : `rgba(239, 68, 68, ${damageFlashRef.current * 0.35})`;
+      ctx.fillRect(-shakeX, -shakeY, width, height);
+      damageFlashRef.current -= 0.04;
+      if (damageFlashRef.current < 0) damageFlashRef.current = 0;
+      ctx.restore();
+    }
+
+    // Combo display on canvas
+    if (deflectComboRef.current >= 3 && performance.now() - lastDeflectTimeRef.current < 1500) {
+      ctx.save();
+      const comboAlpha = Math.min(1, 1 - (performance.now() - lastDeflectTimeRef.current - 800) / 700);
+      if (comboAlpha > 0) {
+        ctx.globalAlpha = comboAlpha;
+        ctx.font = `bold ${Math.min(48, 24 + deflectComboRef.current * 3)}px system-ui, sans-serif`;
+        ctx.fillStyle = '#facc15';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#f59e0b';
+        ctx.textAlign = 'center';
+        ctx.fillText(`COMBO x${deflectComboRef.current}`, cx, cy + 90);
+      }
+      ctx.restore();
+    }
 
     ctx.restore();
   };

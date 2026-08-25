@@ -68,6 +68,9 @@ const App: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [gameHistory, setGameHistory] = useState<GameHistoryEntry[]>([]);
   const [timeAttackRemaining, setTimeAttackRemaining] = useState(90);
+  const [combo, setCombo] = useState(0);
+  const [damageFlash, setDamageFlash] = useState(false);
+  const [totalDeflects, setTotalDeflects] = useState(0);
 
   const startTimeRef = useRef(0);
   const shieldAngleRef = useRef<React.MutableRefObject<number> | null>(null);
@@ -755,6 +758,11 @@ const App: React.FC = () => {
     localStorage.setItem('nucleoEspaco_hasPlayed', 'true');
   }, []);
 
+  const handleDamageFlash = useCallback(() => {
+    setDamageFlash(true);
+    setTimeout(() => setDamageFlash(false), 400);
+  }, []);
+
   // Boss damage tracking for quest
   const handleBossDamageForQuest = useCallback((damage: number) => {
     updateQuestProgress('daily_boss_damage', damage);
@@ -791,6 +799,9 @@ const App: React.FC = () => {
         onEmpTriggered={handleEmpTriggered}
         onBossDefeated={handleBossDefeated}
         onTimeUpdate={setTimeAttackRemaining}
+        onComboUpdate={setCombo}
+        onDamageFlash={handleDamageFlash}
+        onTotalDeflects={setTotalDeflects}
       />
 
       <GameUI
@@ -861,6 +872,9 @@ const App: React.FC = () => {
         onResume={handleResume}
         gameHistory={gameHistory}
         timeAttackRemaining={timeAttackRemaining}
+        combo={combo}
+        damageFlash={damageFlash}
+        totalDeflects={totalDeflects}
       />
     </div>
   );
