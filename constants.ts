@@ -166,12 +166,36 @@ export const THEMES = {
     SHIELD: '#3b82f6', // Rainbow spectrum
     SHIELD_GLOW: '#10b981',
   },
+  IRONMAN: {
+    label: 'HOMEM DE FERRO',
+    price: 4000,
+    CORE: '#ef4444',
+    CORE_GLOW: '#dc2626',
+    SHIELD: '#eab308',
+    SHIELD_GLOW: '#ca8a04',
+  },
+  HULK: {
+    label: 'HULK',
+    price: 4000,
+    CORE: '#22c55e',
+    CORE_GLOW: '#16a34a',
+    SHIELD: '#6b21a8',
+    SHIELD_GLOW: '#581c87',
+  },
+  THOR: {
+    label: 'THOR',
+    price: 4500,
+    CORE: '#3b82f6',
+    CORE_GLOW: '#2563eb',
+    SHIELD: '#f5f5f5',
+    SHIELD_GLOW: '#facc15',
+  },
   CUSTOM: {
     label: 'PERSONALIZADA',
     price: 10000,
-    CORE: '#a855f7', // Purple default
+    CORE: '#a855f7',
     CORE_GLOW: '#9333ea',
-    SHIELD: '#06b6d4', // Cyan default
+    SHIELD: '#06b6d4',
     SHIELD_GLOW: '#0891b2',
   }
 };
@@ -189,8 +213,8 @@ export const UPGRADES = {
     description: '+10% Vida Máxima por nível',
     basePrice: 500,
     priceMultiplier: 1.5,
-    maxLevel: 5,
-    bonusPerLevel: 10, // +10 health
+    maxLevel: 15,
+    bonusPerLevel: 10,
   },
   MINING: {
     id: 'mining',
@@ -198,8 +222,8 @@ export const UPGRADES = {
     description: '+30% Créditos ganhos por nível',
     basePrice: 800,
     priceMultiplier: 1.6,
-    maxLevel: 5,
-    bonusPerLevel: 0.3, // +30% multiplier
+    maxLevel: 15,
+    bonusPerLevel: 0.3,
   },
   REGEN: {
     id: 'regen',
@@ -207,8 +231,8 @@ export const UPGRADES = {
     description: 'Regenera vida lentamente',
     basePrice: 1500,
     priceMultiplier: 1.8,
-    maxLevel: 5,
-    bonusPerLevel: 0.02, // Health per frame approx
+    maxLevel: 15,
+    bonusPerLevel: 0.02,
   },
   LUCK: {
     id: 'luck',
@@ -216,8 +240,8 @@ export const UPGRADES = {
     description: 'Chance de Pontos Críticos (x3)',
     basePrice: 2000,
     priceMultiplier: 2.0,
-    maxLevel: 5,
-    bonusPerLevel: 0.05, // 5% chance per level
+    maxLevel: 15,
+    bonusPerLevel: 0.05,
   }
 };
 

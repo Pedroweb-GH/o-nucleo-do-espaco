@@ -1610,7 +1610,7 @@ const GameUI: React.FC<GameUIProps> = ({
                      <div className="flex items-center justify-between mb-3 px-1">
                         <div className="flex items-center gap-2">
                            <Gift size={16} className="text-amber-400" />
-                           <h3 className="text-xs text-slate-300 uppercase tracking-widest font-bold">Roleta Orbital de Bónus (26 Prémios Cósmicos)</h3>
+                           <h3 className="text-xs text-slate-300 uppercase tracking-widest font-bold">Roleta Orbital de Bónus ({WHEEL_SEGMENTS.length} Prémios Cósmicos)</h3>
                         </div>
                         <div className="flex items-center gap-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full text-[10px] font-bold">
                            <Sparkles size={11} className="text-amber-400" />
@@ -2073,7 +2073,7 @@ const GameUI: React.FC<GameUIProps> = ({
                   <div className="flex items-center gap-2">
                     <Zap size={14} className="text-sky-400" />
                     <div>
-                      <div className="text-sm font-bold text-white">{Object.values(upgrades).reduce((a: number, b: number) => a + b, 0)}/20</div>
+                      <div className="text-sm font-bold text-white">{Object.values(upgrades).reduce((a: number, b: number) => a + b, 0)}/{Object.keys(UPGRADES).length * 15}</div>
                       <div className="text-[9px] text-slate-500">Melhorias</div>
                     </div>
                   </div>

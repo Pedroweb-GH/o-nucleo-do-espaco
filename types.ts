@@ -148,6 +148,9 @@ export type ThemeType =
   | 'CYBERPUNK'
   | 'SUPERNOVA'
   | 'RAINBOW'
+  | 'IRONMAN'
+  | 'HULK'
+  | 'THOR'
   | 'CUSTOM';
 
 export interface CustomSkinConfig {
