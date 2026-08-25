@@ -577,7 +577,7 @@ const App: React.FC = () => {
     }
   }, [credits]);
 
-  const handleBuyMultiBonus = useCallback((slots: 5 | 8 | 16 | 26 = 26, price: number = 30000) => {
+  const handleBuyMultiBonus = useCallback((slots: 5 | 8, price: number = 30000) => {
     if (credits >= price) {
       const newCredits = credits - price;
       setCredits(newCredits);
@@ -596,7 +596,7 @@ const App: React.FC = () => {
 
   const handleToggleEquipPowerUp = useCallback((type: PowerUpType) => {
     if (type === 'NONE') return;
-    const maxCapacity = multiBonusSlots > 0 ? multiBonusSlots : 26;
+    const maxCapacity = multiBonusSlots > 0 ? multiBonusSlots : 8;
     if (hasMultiBonus) {
       setEquippedPowerUps(prev => {
         let next: PowerUpType[];
@@ -629,7 +629,7 @@ const App: React.FC = () => {
 
   const handlePowerUpWon = useCallback((type: PowerUpType) => {
     setSelectedPowerUp(type);
-    const maxCapacity = multiBonusSlots > 0 ? multiBonusSlots : 26;
+    const maxCapacity = multiBonusSlots > 0 ? multiBonusSlots : 8;
     if (hasMultiBonus && type !== 'NONE') {
       setEquippedPowerUps(prev => {
         let next: PowerUpType[];
@@ -691,6 +691,9 @@ const App: React.FC = () => {
     setQuests(INITIAL_QUESTS.map(q => ({ ...q, current: 0, completed: false, claimed: false })));
     setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a, progress: 0, unlocked: false })));
     setGameHistory([]);
+    setPowerUpTimers({});
+    setShowTutorial(true);
+    setSelectedPowerUp('NONE');
 
     soundEngine.playLevelUp();
   }, []);

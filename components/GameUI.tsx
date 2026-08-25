@@ -37,7 +37,7 @@ interface GameUIProps {
   hasMultiBonus?: boolean;
   multiBonusSlots?: number;
   equippedPowerUps?: PowerUpType[];
-  onBuyMultiBonus?: (slots: 5 | 8 | 16 | 26, price: number) => void;
+  onBuyMultiBonus?: (slots: 5 | 8, price: number) => void;
   onToggleEquipPowerUp?: (type: PowerUpType) => void;
   onEquipAllPowerUps?: (types: PowerUpType[]) => void;
   onClearEquippedPowerUps?: () => void;
@@ -615,13 +615,6 @@ const GameUI: React.FC<GameUIProps> = ({
     }
   };
 
-  const formatTimer = (seconds?: number) => {
-    if (seconds === undefined) return '5:00';
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
   const getHealthColor = () => {
     if (colorBlindMode) {
       if (health > 66) return "bg-blue-500";
@@ -641,7 +634,6 @@ const GameUI: React.FC<GameUIProps> = ({
     } catch (e) { console.warn("Fullscreen failed", e); }
   };
 
-  const displayPowerUp = gameState === GameState.PLAYING ? activePowerUp : wheelResult;
   const getUpgradePrice = (base: number, multiplier: number, l: number) => Math.floor(base * Math.pow(multiplier, l));
 
   return (
@@ -801,59 +793,7 @@ const GameUI: React.FC<GameUIProps> = ({
             <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider">Pontuação</div>
           </div>
           
-          {/* Active Power-Ups Tray */}
-          {gameState === GameState.PLAYING && activePowerUps && activePowerUps.length > 0 ? (
-             <div className="flex flex-wrap gap-1.5 justify-end max-w-[480px] animate-in slide-in-from-right duration-500">
-               {activePowerUps.map((pType) => {
-                 const remainingSecs = powerUpTimers[pType];
-                 const isLow = remainingSecs !== undefined && remainingSecs <= 30;
-                 return (
-                   <div
-                     key={pType}
-                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-950 shadow-md shadow-black/40 ring-1 ring-white/20 transition-all ${
-                       isLow ? 'animate-pulse ring-2 ring-red-500' : ''
-                     }`}
-                     style={{ backgroundColor: POWERUPS[pType].color }}
-                   >
-                     <Zap size={11} fill="currentColor" className="shrink-0" />
-                     <span className="truncate max-w-[90px]">{POWERUPS[pType].label}</span>
-                     <div className="flex items-center gap-0.5 bg-black/35 px-1.5 py-0.5 rounded text-[10px] font-mono font-black text-white shrink-0 ml-0.5">
-                       <Clock size={9} className="shrink-0 text-white/80" />
-                       <span>{formatTimer(remainingSecs)}</span>
-                     </div>
-                   </div>
-                 );
-               })}
-             </div>
-          ) : hasMultiBonus && equippedPowerUps && equippedPowerUps.length > 0 ? (
-             <div className="flex flex-wrap gap-1.5 justify-end max-w-[480px] animate-in slide-in-from-right duration-500">
-               {equippedPowerUps.map((pType) => (
-                 <div
-                   key={pType}
-                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-950 shadow-md shadow-black/40 ring-1 ring-white/20"
-                   style={{ backgroundColor: POWERUPS[pType].color }}
-                 >
-                   <Zap size={11} fill="currentColor" className="shrink-0" />
-                   <span className="truncate max-w-[90px]">{POWERUPS[pType].label}</span>
-                   <div className="flex items-center gap-0.5 bg-black/35 px-1.5 py-0.5 rounded text-[10px] font-mono font-black text-white shrink-0 ml-0.5">
-                     <Clock size={9} className="shrink-0 text-white/80" />
-                     <span>5:00</span>
-                   </div>
-                 </div>
-               ))}
-             </div>
-          ) : displayPowerUp !== 'NONE' ? (
-             <div className="animate-in slide-in-from-right duration-500">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold text-slate-900 shadow-lg shadow-black/50" style={{ backgroundColor: POWERUPS[displayPowerUp].color }}>
-                  <Zap size={13} fill="currentColor" />
-                  <span>{POWERUPS[displayPowerUp].label}</span>
-                  <div className="flex items-center gap-0.5 bg-black/35 px-1.5 py-0.5 rounded text-[10px] font-mono font-black text-white shrink-0">
-                    <Clock size={9} className="shrink-0 text-white/80" />
-                    <span>{formatTimer(powerUpTimers[displayPowerUp])}</span>
-                  </div>
-                </div>
-             </div>
-          ) : null}
+          {/* Active Power-Ups — hidden during gameplay to avoid blocking the view */}
         </div>
       </div>
 
@@ -1448,7 +1388,7 @@ const GameUI: React.FC<GameUIProps> = ({
                </div>
 
                <div className="p-5 overflow-y-auto custom-scrollbar relative z-10 bg-[#020617] space-y-6 text-left">
-                  {/* Multi-Bónus e Equipamento de Slots (5, 8, 16 e 26 Bónus) */}
+                  {/* Multi-Bónus e Equipamento de Slots (5 e 8 Bónus) */}
                   <div className="bg-gradient-to-b from-indigo-950/40 via-slate-900 to-slate-950 border border-indigo-500/30 p-4 rounded-2xl">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
@@ -1456,7 +1396,7 @@ const GameUI: React.FC<GameUIProps> = ({
                         <div>
                           <h3 className="text-xs text-white uppercase tracking-widest font-black flex items-center gap-1.5">
                             MULTI-BÓNUS SIMULTÂNEO & FERRAMENTAS
-                            <span className="text-[9px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">26 SLOTS MÁX</span>
+                            <span className="text-[9px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">8 SLOTS MÁX</span>
                           </h3>
                           <p className="text-[10px] text-slate-400">Ativa múltiplos bónus e super ferramentas ao mesmo tempo em combate</p>
                         </div>
@@ -1464,7 +1404,7 @@ const GameUI: React.FC<GameUIProps> = ({
                     </div>
 
                     {/* Unlock / Upgrade Slots Options */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                    <div className="grid grid-cols-2 gap-2 mb-4">
                       {/* 5 Slots */}
                       <div className={`p-2.5 rounded-xl border transition-all ${multiBonusSlots >= 5 ? 'bg-indigo-950/40 border-indigo-400' : 'bg-slate-900 border-slate-800'}`}>
                         <div className="flex justify-between items-center mb-1">
@@ -1506,48 +1446,6 @@ const GameUI: React.FC<GameUIProps> = ({
                           </button>
                         )}
                       </div>
-
-                      {/* 16 Slots */}
-                      <div className={`p-2.5 rounded-xl border transition-all ${multiBonusSlots >= 16 ? 'bg-purple-950/40 border-purple-400' : 'bg-slate-900 border-slate-800'}`}>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[11px] font-black text-purple-300">16 Bónus</span>
-                          {multiBonusSlots >= 16 && <CheckCircle2 size={13} className="text-purple-400" />}
-                        </div>
-                        <p className="text-[9px] text-slate-400 mb-2">100.000 CR</p>
-                        {multiBonusSlots >= 16 ? (
-                          <div className="bg-purple-500/20 text-purple-300 text-[9px] font-bold py-1 rounded text-center border border-purple-500/40">
-                            ATIVO (16)
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => onBuyMultiBonus?.(16, 100000)}
-                            className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[10px] font-bold transition-all"
-                          >
-                            Ativar (100k)
-                          </button>
-                        )}
-                      </div>
-
-                      {/* 26 Slots (TODOS OS 26 BÓNUS - MODO DEUS SUPREMO) */}
-                      <div className={`p-2.5 rounded-xl border transition-all ${multiBonusSlots >= 26 ? 'bg-fuchsia-950/40 border-fuchsia-400 shadow-md shadow-fuchsia-500/20 ring-1 ring-fuchsia-400/50' : 'bg-slate-900 border-slate-800'}`}>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-[11px] font-black text-fuchsia-300">26 (TODOS)</span>
-                          {multiBonusSlots >= 26 && <CheckCircle2 size={13} className="text-fuchsia-400" />}
-                        </div>
-                        <p className="text-[9px] text-slate-400 mb-2">150.000 CR</p>
-                        {multiBonusSlots >= 26 ? (
-                          <div className="bg-fuchsia-500/20 text-fuchsia-300 text-[9px] font-black py-1 rounded text-center border border-fuchsia-500/40">
-                            MÁXIMO (26)
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => onBuyMultiBonus?.(26, 150000)}
-                            className="w-full py-1.5 bg-gradient-to-r from-fuchsia-500 to-pink-500 hover:from-fuchsia-400 hover:to-pink-400 text-white rounded-lg text-[10px] font-black transition-all"
-                          >
-                            Ativar (150k)
-                          </button>
-                        )}
-                      </div>
                     </div>
 
                     {/* Seleção rápida dos bónus equipados */}
@@ -1555,14 +1453,14 @@ const GameUI: React.FC<GameUIProps> = ({
                       <div className="pt-3 border-t border-slate-800">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[11px] font-bold text-slate-300 uppercase">
-                            Ferramentas & Bónus Ativos ({equippedPowerUps.length}/{multiBonusSlots || 26}):
+                            Ferramentas & Bónus Ativos ({equippedPowerUps.length}/{multiBonusSlots}):
                           </span>
                           <div className="flex gap-1.5">
                             <button
                               onClick={() => onEquipAllPowerUps?.(WHEEL_SEGMENTS.map(s => s.type))}
                               className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-lg text-[10px] shadow-sm"
                             >
-                              ⚡ Equipar Todas as 26 Ferramentas
+                              ⚡ Equipar Ferramentas
                             </button>
                             <button
                               onClick={() => onClearEquippedPowerUps?.()}
