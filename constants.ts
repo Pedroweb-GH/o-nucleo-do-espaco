@@ -120,7 +120,7 @@ export const THEMES = {
   },
   SPIDERMAN: {
     label: 'HOMEM-ARANHA',
-    price: 3500,
+    price: 25000,
     CORE: '#ef4444', // Iconic Spidey Red
     CORE_GLOW: '#b91c1c',
     SHIELD: '#3b82f6', // Spidey Royal Blue
@@ -128,7 +128,7 @@ export const THEMES = {
   },
   BATMAN: {
     label: 'CAVALEIRO DAS TREVAS',
-    price: 4500,
+    price: 25000,
     CORE: '#0f172a', // Midnight Bat Black
     CORE_GLOW: '#eab308', // Gotham Signal Gold
     SHIELD: '#eab308', // Bat Gold
@@ -168,7 +168,7 @@ export const THEMES = {
   },
   IRONMAN: {
     label: 'HOMEM DE FERRO',
-    price: 4000,
+    price: 25000,
     CORE: '#ef4444',
     CORE_GLOW: '#dc2626',
     SHIELD: '#eab308',
@@ -176,7 +176,7 @@ export const THEMES = {
   },
   HULK: {
     label: 'HULK',
-    price: 4000,
+    price: 25000,
     CORE: '#22c55e',
     CORE_GLOW: '#16a34a',
     SHIELD: '#6b21a8',
@@ -184,7 +184,7 @@ export const THEMES = {
   },
   THOR: {
     label: 'THOR',
-    price: 4500,
+    price: 25000,
     CORE: '#3b82f6',
     CORE_GLOW: '#2563eb',
     SHIELD: '#f5f5f5',

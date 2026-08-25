@@ -1170,12 +1170,137 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.restore();
     }
 
+    if (currentTheme === 'SPIDERMAN' && healthRef.current >= 40) {
+      ctx.save();
+      const t = performance.now() / 1000;
+      ctx.rotate(t * 0.3);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 1;
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a) * GAME_CONSTANTS.CORE_RADIUS, Math.sin(a) * GAME_CONSTANTS.CORE_RADIUS);
+        ctx.stroke();
+      }
+      for (let r = 5; r <= GAME_CONSTANTS.CORE_RADIUS; r += 5) {
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; ctx.fill();
+      ctx.restore();
+    }
+
+    if (currentTheme === 'BATMAN' && healthRef.current >= 40) {
+      ctx.save();
+      const t = performance.now() / 2000;
+      const glowPulse = 0.4 + Math.sin(t * Math.PI * 2) * 0.3;
+      ctx.beginPath(); ctx.arc(0, 0, GAME_CONSTANTS.CORE_RADIUS * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(234, 179, 8, ${glowPulse * 0.3})`; ctx.fill();
+      ctx.strokeStyle = `rgba(234, 179, 8, ${glowPulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, 6 + Math.sin(t * 3) * 2, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 12 + Math.cos(t * 2) * 2, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = `rgba(234, 179, 8, ${glowPulse * 0.9})`;
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    if (currentTheme === 'IRONMAN' && healthRef.current >= 40) {
+      ctx.save();
+      const t = performance.now() / 800;
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.6)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(135, 206, 250, 0.9)'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 11, t % (Math.PI * 2), t % (Math.PI * 2) + Math.PI * 1.5); ctx.stroke();
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const a = (i * Math.PI * 2) / 3 + t * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 13, Math.sin(a) * 13);
+        ctx.lineTo(Math.cos(a) * GAME_CONSTANTS.CORE_RADIUS, Math.sin(a) * GAME_CONSTANTS.CORE_RADIUS);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if (currentTheme === 'HULK' && healthRef.current >= 40) {
+      ctx.save();
+      const t = performance.now() / 600;
+      ctx.strokeStyle = 'rgba(134, 239, 172, 0.5)'; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 5; i++) {
+        const a = (i * Math.PI * 2) / 5;
+        const len = 8 + Math.sin(t + i * 1.2) * 4;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        const segments = 4;
+        for (let s = 1; s <= segments; s++) {
+          const frac = s / segments;
+          const jx = Math.cos(a) * len * frac + (Math.sin(t * 2 + i + s) * 2);
+          const jy = Math.sin(a) * len * frac + (Math.cos(t * 2 + i + s) * 2);
+          ctx.lineTo(jx, jy);
+        }
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(0, 0, 5 + Math.sin(t) * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(34, 197, 94, ${0.4 + Math.sin(t) * 0.2})`; ctx.fill();
+      ctx.restore();
+    }
+
+    if (currentTheme === 'THOR' && healthRef.current >= 40) {
+      ctx.save();
+      const t = performance.now() / 400;
+      ctx.strokeStyle = 'rgba(135, 206, 250, 0.7)'; ctx.lineWidth = 1.5;
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI / 2) + t * 0.3;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        let px = 0, py = 0;
+        for (let s = 1; s <= 3; s++) {
+          const dist = (GAME_CONSTANTS.CORE_RADIUS * 0.9 * s) / 3;
+          const jitter = Math.sin(t * 3 + i * 7 + s * 13) * 4;
+          const nx = Math.cos(a) * dist + jitter;
+          const ny = Math.sin(a) * dist + jitter;
+          ctx.lineTo(nx, ny);
+          px = nx; py = ny;
+        }
+        ctx.shadowBlur = 8; ctx.shadowColor = '#87CEFA';
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.9)'; ctx.fill();
+      ctx.restore();
+    }
+
     if (healthRef.current < maxHealth) {
        ctx.beginPath();
        const healthPct = Math.max(0, healthRef.current / maxHealth);
        ctx.arc(0, 0, GAME_CONSTANTS.CORE_RADIUS + 5, -Math.PI/2, (-Math.PI/2) + (Math.PI * 2 * healthPct));
        ctx.strokeStyle = coreColor; ctx.lineWidth = 2; ctx.stroke();
     }
+
+    const empPct = Math.min(1, empEnergy / 100);
+    const empRingRadius = GAME_CONSTANTS.CORE_RADIUS + 12;
+    if (empPct > 0) {
+      ctx.beginPath();
+      ctx.arc(0, 0, empRingRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.1)'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, empRingRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * empPct);
+      if (empPct >= 1) {
+        const pulse = 0.6 + Math.sin(performance.now() / 200) * 0.4;
+        ctx.strokeStyle = `rgba(56, 189, 248, ${pulse})`;
+        ctx.shadowBlur = 12; ctx.shadowColor = '#38bdf8';
+      } else {
+        ctx.strokeStyle = `rgba(56, 189, 248, 0.6)`;
+      }
+      ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    if (empPct >= 1) {
+      ctx.font = 'bold 7px monospace';
+      ctx.fillStyle = '#38bdf8'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('EMP', 0, GAME_CONSTANTS.CORE_RADIUS + 12 + 10);
+    }
+
     ctx.restore();
 
     let currentShieldArc = GAME_CONSTANTS.SHIELD_ARC;
@@ -1243,6 +1368,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -currentShieldArc/2, currentShieldArc/2);
     ctx.strokeStyle = currentTheme === 'VOID' ? '#FFFFFF' : shieldColor;
     ctx.lineWidth = GAME_CONSTANTS.SHIELD_THICKNESS; ctx.lineCap = 'round'; ctx.shadowBlur = 15; ctx.shadowColor = shieldGlow; ctx.stroke();
+    if (currentTheme === 'SPIDERMAN') {
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius, -currentShieldArc/2, currentShieldArc/2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1; ctx.shadowBlur = 0;
+      ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+    } else if (currentTheme === 'BATMAN') {
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius + 3, -currentShieldArc/2, currentShieldArc/2);
+      ctx.strokeStyle = 'rgba(234, 179, 8, 0.25)'; ctx.lineWidth = 2; ctx.shadowBlur = 10; ctx.shadowColor = '#eab308'; ctx.stroke();
+    } else if (currentTheme === 'IRONMAN') {
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius - 3, -currentShieldArc/2, currentShieldArc/2);
+      ctx.strokeStyle = 'rgba(135, 206, 250, 0.4)'; ctx.lineWidth = 1.5; ctx.shadowBlur = 8; ctx.shadowColor = '#87CEFA'; ctx.stroke();
+    } else if (currentTheme === 'HULK') {
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius + 2, -currentShieldArc/2, currentShieldArc/2);
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.3)'; ctx.lineWidth = 4; ctx.shadowBlur = 12; ctx.shadowColor = '#22c55e'; ctx.stroke();
+    } else if (currentTheme === 'THOR') {
+      const tShield = performance.now() / 300;
+      ctx.strokeStyle = `rgba(250, 204, 21, ${0.2 + Math.sin(tShield) * 0.15})`; ctx.lineWidth = 2; ctx.shadowBlur = 15; ctx.shadowColor = '#facc15';
+      ctx.beginPath(); ctx.arc(0, 0, currentShieldRadius + 2, -currentShieldArc/2, currentShieldArc/2); ctx.stroke();
+    }
     ctx.restore();
 
     // Active Double Shield (180 degrees mirrored shield, narrower)

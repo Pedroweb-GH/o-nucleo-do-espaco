@@ -59,6 +59,7 @@ const App: React.FC = () => {
   const [credits, setCredits] = useState(0);
   const [difficulty, setDifficulty] = useState<DifficultyType>('MEDIUM');
   const [extraSpins, setExtraSpins] = useState(0);
+  const [spinsCooldownUntil, setSpinsCooldownUntil] = useState(0);
   const [earnedCredits, setEarnedCredits] = useState(0);
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('DEFAULT');
   const [unlockedThemes, setUnlockedThemes] = useState<ThemeType[]>(['DEFAULT']);
@@ -121,6 +122,9 @@ const App: React.FC = () => {
 
     const savedSpins = localStorage.getItem('nucleoEspaco_extraSpins');
     if (savedSpins) setExtraSpins(parseInt(savedSpins, 10));
+
+    const savedCooldown = localStorage.getItem('nucleoEspaco_spinsCooldown');
+    if (savedCooldown) setSpinsCooldownUntil(parseInt(savedCooldown, 10));
 
     const savedThemes = localStorage.getItem('nucleoEspaco_themes');
     if (savedThemes) setUnlockedThemes(safeParse<ThemeType[]>(savedThemes, ['DEFAULT']));
@@ -571,6 +575,7 @@ const App: React.FC = () => {
   }, [credits, upgrades]);
 
   const handleBuySpins = useCallback((spinsCount: number = 5, price: number = 15000) => {
+    if (Date.now() < spinsCooldownUntil) return;
     if (credits >= price) {
       const newCredits = credits - price;
       setCredits(newCredits);
@@ -581,7 +586,7 @@ const App: React.FC = () => {
         return newVal;
       });
     }
-  }, [credits]);
+  }, [credits, spinsCooldownUntil]);
 
   const handleBuyMultiBonus = useCallback((slots: 5 | 8, price: number = 30000) => {
     if (credits >= price) {
@@ -667,6 +672,11 @@ const App: React.FC = () => {
     setExtraSpins(prev => {
       const newVal = Math.max(0, prev - 1);
       localStorage.setItem('nucleoEspaco_extraSpins', newVal.toString());
+      if (newVal === 0 && prev > 0) {
+        const cooldownEnd = Date.now() + 24 * 60 * 60 * 1000;
+        setSpinsCooldownUntil(cooldownEnd);
+        localStorage.setItem('nucleoEspaco_spinsCooldown', cooldownEnd.toString());
+      }
       return newVal;
     });
   }, []);
@@ -680,12 +690,14 @@ const App: React.FC = () => {
       'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
       'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
       'nucleoEspaco_hasPlayed', 'nucleoEspaco_questDate', 'nucleoEspaco_gameHistory',
+      'nucleoEspaco_spinsCooldown',
     ];
     keys.forEach(k => localStorage.removeItem(k));
 
     setCredits(0);
     setHighScore(0);
     setExtraSpins(0);
+    setSpinsCooldownUntil(0);
     setEarnedCredits(0);
     setHasMultiBonus(false);
     setMultiBonusSlots(0);
@@ -740,7 +752,7 @@ const App: React.FC = () => {
               return nc;
             });
           }
-          if (q.rewardSpins > 0) {
+          if (q.rewardSpins > 0 && Date.now() >= spinsCooldownUntil) {
             setExtraSpins(s => {
               const ns = s + q.rewardSpins;
               localStorage.setItem('nucleoEspaco_extraSpins', ns.toString());
@@ -840,6 +852,7 @@ const App: React.FC = () => {
         difficulty={difficulty}
         onDifficultyChange={(d) => { setDifficulty(d); localStorage.setItem('nucleoEspaco_difficulty', d); }}
         extraSpins={extraSpins}
+        spinsCooldownUntil={spinsCooldownUntil}
         onBuySpins={handleBuySpins}
         onUseExtraSpin={handleUseExtraSpin}
         onAwardCredits={handleAwardCredits}

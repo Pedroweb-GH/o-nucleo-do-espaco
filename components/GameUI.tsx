@@ -31,6 +31,7 @@ interface GameUIProps {
   loadingReport: boolean;
   earnedCredits: number;
   extraSpins: number;
+  spinsCooldownUntil: number;
   onBuySpins: (count: number, price: number) => void;
   onUseExtraSpin: () => void;
   onAwardCredits?: (amount: number) => void;
@@ -496,7 +497,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
 const GameUI: React.FC<GameUIProps> = ({ 
   gameState, gameMode, onGameModeChange, score, health, maxHealth, level, highScore, credits, upgrades, difficulty, onDifficultyChange,
-  report, loadingReport, earnedCredits, extraSpins, onBuySpins, onUseExtraSpin, onAwardCredits,
+  report, loadingReport, earnedCredits, extraSpins, spinsCooldownUntil, onBuySpins, onUseExtraSpin, onAwardCredits,
   hasMultiBonus, multiBonusSlots = 0, equippedPowerUps = [], unlockedPowerUps = [], onBuyMultiBonus, onToggleEquipPowerUp, onEquipAllPowerUps, onClearEquippedPowerUps,
   onStart, onExitGame, onPowerUpSelected, activePowerUp, activePowerUps = [], powerUpTimers = {},
   currentTheme, unlockedThemes, onBuyTheme, onThemeChange, customSkin = { coreColor: '#a855f7', shieldColor: '#06b6d4', pattern: 'ENERGY_MATRIX' }, onCustomSkinChange,
@@ -523,6 +524,7 @@ const GameUI: React.FC<GameUIProps> = ({
   const [hasSpun, setHasSpun] = useState(false);
   const [wheelResult, setWheelResult] = useState<PowerUpType>('NONE');
 
+  const isSpinsCooldown = spinsCooldownUntil > 0 && Date.now() < spinsCooldownUntil;
   const hasAvailableSpins = !hasSpun || extraSpins > 0;
 
   const addToast = (text: string, color: string, icon: string = '✨') => {
@@ -766,33 +768,15 @@ const GameUI: React.FC<GameUIProps> = ({
         </div>
       </div>
 
-      {/* In-Game EMP Super Ability Button (Bottom Right) */}
-      {gameState === GameState.PLAYING && (
-        <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-40 pointer-events-auto flex flex-col items-end gap-2 animate-in slide-in-from-bottom duration-300">
+      {/* In-Game EMP Tap Target (centered on core) */}
+      {gameState === GameState.PLAYING && empEnergy >= 100 && (
+        <div className="fixed inset-0 flex items-center justify-center z-40 pointer-events-none">
           <button
             id="in-game-emp-btn"
             onClick={onTriggerEmp}
-            disabled={empEnergy < 100}
-            className={`relative group px-3 py-2.5 sm:px-5 sm:py-3.5 rounded-2xl flex items-center gap-2 sm:gap-3 transition-all duration-300 font-black text-[10px] sm:text-xs uppercase tracking-wider ${
-              empEnergy >= 100
-                ? 'bg-gradient-to-r from-sky-400 via-cyan-300 to-blue-500 text-slate-950 shadow-[0_0_35px_rgba(56,189,248,0.8)] scale-105 animate-pulse cursor-pointer hover:scale-110'
-                : 'bg-slate-950/80 backdrop-blur border border-slate-800 text-slate-500 cursor-not-allowed opacity-85'
-            }`}
-          >
-            <div className="relative">
-              <Zap size={18} className={empEnergy >= 100 ? 'text-slate-950 animate-bounce' : 'text-sky-500'} />
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="hidden sm:inline">ONDA DE CHOQUE EMP</span>
-                <span className="sm:hidden">EMP</span>
-                <span className="font-mono text-[10px] sm:text-[11px]">{Math.round(empEnergy)}%</span>
-              </div>
-              <span className="text-[9px] font-normal normal-case block opacity-80">
-                {empEnergy >= 100 ? 'PRONTO! Toca para ativar' : 'Carrega ao defender'}
-              </span>
-            </div>
-          </button>
+            className="pointer-events-auto w-20 h-20 rounded-full bg-transparent cursor-pointer"
+            aria-label="Ativar EMP"
+          />
         </div>
       )}
 
@@ -1507,18 +1491,23 @@ const GameUI: React.FC<GameUIProps> = ({
                             {isSpinning 
                               ? 'A girar roleta...' 
                               : hasSpun 
-                              ? (extraSpins > 0 ? `Girar Novamente (${extraSpins} extra${extraSpins > 1 ? 's' : ''})` : 'Sem Giros Extras') 
+                              ? (extraSpins > 0 ? `Girar Novamente (${extraSpins} extra${extraSpins > 1 ? 's' : ''})` : (isSpinsCooldown ? 'Espera 24h por giros' : 'Sem Giros Extras'))
                               : 'Girar Roleta Grátis'}
                           </span>
                         </button>
 
                         <button
                           onClick={() => onBuySpins(5, 15000)}
-                          className="py-3 px-3.5 bg-slate-800 hover:bg-slate-700 text-yellow-400 rounded-xl font-bold text-xs border border-yellow-500/30 transition-colors flex items-center gap-1 shrink-0"
-                          title="Comprar +5 Giros por 15.000 Créditos"
+                          disabled={isSpinsCooldown}
+                          className={`py-3 px-3.5 rounded-xl font-bold text-xs border transition-colors flex items-center gap-1 shrink-0 ${
+                            isSpinsCooldown
+                              ? 'bg-slate-900 text-slate-600 border-slate-700 cursor-not-allowed'
+                              : 'bg-slate-800 hover:bg-slate-700 text-yellow-400 border-yellow-500/30'
+                          }`}
+                          title={isSpinsCooldown ? 'Giros em espera — volta amanhã!' : 'Comprar +5 Giros por 15.000 Créditos'}
                         >
                           <RotateCcw size={13} />
-                          <span>+5 Giros (15k)</span>
+                          <span>{isSpinsCooldown ? 'Espera 24h' : '+5 Giros (15k)'}</span>
                         </button>
                      </div>
                   </div>
