@@ -96,7 +96,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Boss state ref
   const bossRef = useRef<BossState | null>(null);
   const lastBossSpawnLevelRef = useRef(0);
-  const timeAttackStartRef = useRef(0);
+  const timeAttackRemainingRef = useRef(90);
+  const lastFrameTimeRef = useRef(0);
   const timeAttackDuration = 90;
 
   // Deflect combo tracker for dynamic audio
@@ -137,7 +138,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       const dist = Math.hypot(obs.pos.x - cx, obs.pos.y - cy);
       if (dist < empRadius) {
         obs.active = false;
-        createExplosion(obs.pos.x, obs.pos.y, '#38bdf8', 10);
+        const empColor = currentTheme === 'SPIDERMAN' ? '#ffffff' : currentTheme === 'THOR' ? '#87CEFA' : currentTheme === 'HULK' ? '#22c55e' : currentTheme === 'IRONMAN' ? '#eab308' : '#38bdf8';
+        createExplosion(obs.pos.x, obs.pos.y, empColor, 10);
         destroyedCount++;
       } else {
         const pushAngle = Math.atan2(obs.pos.y - cy, obs.pos.x - cx);
@@ -295,13 +297,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         onBossStateChange?.(null);
 
         if (gameMode === 'TIME_ATTACK') {
-          timeAttackStartRef.current = performance.now();
+          timeAttackRemainingRef.current = timeAttackDuration;
+          lastFrameTimeRef.current = performance.now();
           onTimeUpdate?.(timeAttackDuration);
         }
 
         if (gameMode === 'BOSS_RUSH') {
           spawnBoss(1, window.innerWidth, window.innerHeight);
         }
+      }
+      if (gameMode === 'TIME_ATTACK') {
+        lastFrameTimeRef.current = performance.now();
       }
       soundEngine.startMusic();
     } else if (gameState === GameState.PAUSED) {
@@ -522,12 +528,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (Math.floor(time) % 30 === 0) onHealthUpdate(healthRef.current);
     }
 
-    // TIME_ATTACK countdown
+    // TIME_ATTACK countdown (delta-time based, pause-safe)
     if (gameMode === 'TIME_ATTACK') {
-      const elapsed = (performance.now() - timeAttackStartRef.current) / 1000;
-      const remaining = Math.max(0, timeAttackDuration - elapsed);
-      if (Math.floor(time) % 5 === 0) onTimeUpdate?.(Math.ceil(remaining));
-      if (remaining <= 0 && !gameOverFiredRef.current) {
+      const now = performance.now();
+      const dt = (now - lastFrameTimeRef.current) / 1000;
+      lastFrameTimeRef.current = now;
+      timeAttackRemainingRef.current = Math.max(0, timeAttackRemainingRef.current - dt);
+      const remaining = Math.ceil(timeAttackRemainingRef.current);
+      onTimeUpdate?.(remaining);
+      if (timeAttackRemainingRef.current <= 0 && !gameOverFiredRef.current) {
         gameOverFiredRef.current = true;
         onGameOver(scoreRef.current);
         return;
@@ -997,16 +1006,94 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`; ctx.fill();
     });
 
-    // EMP Shockwave Ring
+    // EMP Shockwave — themed per hero skin
     if (empShockwaveRef.current.active) {
+      const r = empShockwaveRef.current.radius;
+      const op = empShockwaveRef.current.opacity;
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, empShockwaveRef.current.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(56, 189, 248, ${empShockwaveRef.current.opacity})`;
-      ctx.lineWidth = 6;
-      ctx.shadowBlur = 25;
-      ctx.shadowColor = '#38bdf8';
-      ctx.stroke();
+      if (currentTheme === 'SPIDERMAN') {
+        const webCount = 12;
+        for (let i = 0; i < webCount; i++) {
+          const angle = (i / webCount) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${op * 0.7})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+        for (let ring = 1; ring <= 4; ring++) {
+          const ringR = r * (ring / 4);
+          ctx.beginPath();
+          ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${op * 0.4})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      } else if (currentTheme === 'THOR') {
+        const boltCount = 8;
+        for (let i = 0; i < boltCount; i++) {
+          const angle = (i / boltCount) * Math.PI * 2 + performance.now() / 200;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          let px = cx, py = cy;
+          const segs = 6;
+          for (let s = 1; s <= segs; s++) {
+            const dist = (r * s) / segs;
+            const jitter = (Math.random() - 0.5) * 30;
+            const nx = cx + Math.cos(angle + jitter * 0.01) * dist + jitter;
+            const ny = cy + Math.sin(angle + jitter * 0.01) * dist + jitter;
+            ctx.lineTo(nx, ny);
+            px = nx; py = ny;
+          }
+          ctx.strokeStyle = `rgba(135, 206, 250, ${op})`;
+          ctx.lineWidth = 3;
+          ctx.shadowBlur = 20;
+          ctx.shadowColor = '#87CEFA';
+          ctx.stroke();
+        }
+      } else if (currentTheme === 'HULK') {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${op})`;
+        ctx.lineWidth = 12;
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = '#22c55e';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(34, 197, 94, ${op * 0.5})`;
+        ctx.lineWidth = 8;
+        ctx.stroke();
+      } else if (currentTheme === 'IRONMAN') {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(239, 68, 68, ${op})`;
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = '#ef4444';
+        ctx.stroke();
+        const beamCount = 6;
+        for (let i = 0; i < beamCount; i++) {
+          const angle = (i / beamCount) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(angle) * GAME_CONSTANTS.CORE_RADIUS, cy + Math.sin(angle) * GAME_CONSTANTS.CORE_RADIUS);
+          ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+          ctx.strokeStyle = `rgba(234, 179, 8, ${op * 0.8})`;
+          ctx.lineWidth = 3;
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = '#eab308';
+          ctx.stroke();
+        }
+      } else {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(56, 189, 248, ${op})`;
+        ctx.lineWidth = 6;
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#38bdf8';
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
