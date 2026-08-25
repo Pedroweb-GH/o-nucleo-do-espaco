@@ -37,6 +37,7 @@ interface GameUIProps {
   hasMultiBonus?: boolean;
   multiBonusSlots?: number;
   equippedPowerUps?: PowerUpType[];
+  unlockedPowerUps?: PowerUpType[];
   onBuyMultiBonus?: (slots: 5 | 8, price: number) => void;
   onToggleEquipPowerUp?: (type: PowerUpType) => void;
   onEquipAllPowerUps?: (types: PowerUpType[]) => void;
@@ -514,7 +515,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 const GameUI: React.FC<GameUIProps> = ({ 
   gameState, gameMode, onGameModeChange, score, health, maxHealth, level, highScore, credits, upgrades, difficulty, onDifficultyChange,
   report, loadingReport, earnedCredits, extraSpins, onBuySpins, onUseExtraSpin, onAwardCredits,
-  hasMultiBonus, multiBonusSlots = 0, equippedPowerUps = [], onBuyMultiBonus, onToggleEquipPowerUp, onEquipAllPowerUps, onClearEquippedPowerUps,
+  hasMultiBonus, multiBonusSlots = 0, equippedPowerUps = [], unlockedPowerUps = [], onBuyMultiBonus, onToggleEquipPowerUp, onEquipAllPowerUps, onClearEquippedPowerUps,
   onStart, onExitGame, onPowerUpSelected, activePowerUp, activePowerUps = [], powerUpTimers = {},
   currentTheme, unlockedThemes, onBuyTheme, onThemeChange, customSkin = { coreColor: '#a855f7', shieldColor: '#06b6d4', pattern: 'ENERGY_MATRIX' }, onCustomSkinChange,
   onBuyUpgrade, highPerformance, onPerformanceChange, colorBlindMode, onColorBlindChange,
@@ -1457,10 +1458,10 @@ const GameUI: React.FC<GameUIProps> = ({
                           </span>
                           <div className="flex gap-1.5">
                             <button
-                              onClick={() => onEquipAllPowerUps?.(WHEEL_SEGMENTS.map(s => s.type))}
+                              onClick={() => onEquipAllPowerUps?.(unlockedPowerUps.slice(0, multiBonusSlots))}
                               className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-lg text-[10px] shadow-sm"
                             >
-                              ⚡ Equipar Ferramentas
+                              ⚡ Equipar Todos
                             </button>
                             <button
                               onClick={() => onClearEquippedPowerUps?.()}
@@ -1472,7 +1473,12 @@ const GameUI: React.FC<GameUIProps> = ({
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
-                          {WHEEL_SEGMENTS.map((seg) => {
+                          {unlockedPowerUps.length === 0 && (
+                            <div className="col-span-2 text-center py-4 text-slate-500 text-xs">
+                              Gira a roleta para desbloquear bónus!
+                            </div>
+                          )}
+                          {WHEEL_SEGMENTS.filter(seg => unlockedPowerUps.includes(seg.type)).map((seg) => {
                             const isEquipped = equippedPowerUps.includes(seg.type);
                             const SegIcon = seg.Icon;
                             return (
