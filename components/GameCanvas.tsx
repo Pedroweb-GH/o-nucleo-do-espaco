@@ -786,7 +786,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             addFloatingText(obs.pos.x, obs.pos.y, 'ESCUDO!', '#60a5fa');
             soundEngine.playShieldBlock(1);
             onDeflectObstacle?.();
-            const empGain = hasPowerUp('HYPER_EMP') ? 18 : 8;
+            const empGain = hasPowerUp('HYPER_EMP') ? 12 : 8;
             onEmpEnergyUpdate(Math.min(100, empEnergy + empGain));
             return;
           }
@@ -830,7 +830,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           onDeflectObstacle?.();
 
           // Charge EMP Energy (+8% standard or +18% with HYPER_EMP)
-          const empGain = hasPowerUp('HYPER_EMP') ? 18 : 8;
+          const empGain = hasPowerUp('HYPER_EMP') ? 12 : 8;
           const newEmp = Math.min(100, empEnergy + empGain);
           onEmpEnergyUpdate(newEmp);
           if (newEmp === 100 && empEnergy < 100) {

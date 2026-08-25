@@ -103,7 +103,7 @@ export const WHEEL_SEGMENTS: {
   { type: 'INSTANT_CREDITS', label: '+1.500 Créditos', shortLabel: '+1.5k CR', color: '#eab308', description: '+1.500 CR Imediatos + Bónus Mineração', Icon: Coins },
   { type: 'EXPLOSIVE_DEFENSE', label: 'Onda Explosiva', shortLabel: 'Explosão', color: '#ef4444', description: 'Impactos Destroem Detritos Próximos', Icon: Zap },
   { type: 'TRIPLE_SCORE', label: 'Pontos x3 Hiperdrive', shortLabel: 'x3 Pts', color: '#3b82f6', description: 'Pontuação Triplicada Épica (x3)', Icon: Sparkles },
-  { type: 'HYPER_EMP', label: 'Carga Total EMP', shortLabel: 'EMP Max', color: '#f97316', description: 'Carrega Barra EMP a 100% Rapidamente', Icon: Flame },
+  { type: 'HYPER_EMP', label: 'Carga Total EMP', shortLabel: 'EMP Max', color: '#f97316', description: 'Carrega EMP +50% Mais Rápido', Icon: Flame },
   { type: 'TIME_FREEZE', label: 'Congelamento Cósmico', shortLabel: 'Gelo', color: '#38bdf8', description: 'Inimigos e Detritos 65% Mais Lentos', Icon: Gauge },
   { type: 'DOUBLE_SHIELD', label: 'Escudo Duplo 360°', shortLabel: 'Duplo', color: '#10b981', description: 'Segundo Escudo Espelhado a 180°', Icon: Layers },
   { type: 'JACKPOT_CREDITS', label: 'Super Jackpot CR', shortLabel: 'Jackpot', color: '#f59e0b', description: '+5.000 Créditos Instantâneos', Icon: Gift },
@@ -134,7 +134,7 @@ const POWERUPS: Record<PowerUpType, PowerUpConfig> = {
   INSTANT_CREDITS: { type: 'INSTANT_CREDITS', label: '+1.500 Créditos', color: '#eab308', description: '+1.500 CR Imediatos + Bónus Mineração' },
   EXPLOSIVE_DEFENSE: { type: 'EXPLOSIVE_DEFENSE', label: 'Onda Explosiva', color: '#ef4444', description: 'Impactos Destroem Detritos Próximos' },
   TRIPLE_SCORE: { type: 'TRIPLE_SCORE', label: 'Pontos x3 Hiperdrive', color: '#3b82f6', description: 'Pontuação Triplicada Épica (x3)' },
-  HYPER_EMP: { type: 'HYPER_EMP', label: 'Carga Total EMP', color: '#f97316', description: 'Carrega Barra EMP a 100% Rapidamente' },
+  HYPER_EMP: { type: 'HYPER_EMP', label: 'Carga Total EMP', color: '#f97316', description: 'Carrega EMP +50% Mais Rápido' },
   TIME_FREEZE: { type: 'TIME_FREEZE', label: 'Congelamento Cósmico', color: '#38bdf8', description: 'Inimigos e Detritos 65% Mais Lentos' },
   DOUBLE_SHIELD: { type: 'DOUBLE_SHIELD', label: 'Escudo Duplo 360°', color: '#10b981', description: 'Segundo Escudo Espelhado a 180°' },
   JACKPOT_CREDITS: { type: 'JACKPOT_CREDITS', label: 'Super Jackpot CR', color: '#f59e0b', description: '+5.000 Créditos Instantâneos' },
@@ -1911,7 +1911,7 @@ const GameUI: React.FC<GameUIProps> = ({
                   O Miguel tem apenas 9 anos, mas a sua curiosidade pelo mundo não conhece limites. É daqueles miúdos que fazem mil perguntas, que querem saber como tudo funciona, e que não têm medo de explorar coisas novas.
                 </p>
                 <p className="text-sm text-slate-300 leading-relaxed mt-3">
-                  Quando não está a criar jogos no computador, o Miguel está no campo a jogar futsal com os amigos — com uma energia que nunca acaba. Na escola, é um verdadeiro estrela: gosta de aprender, de participar, e de descobrir algo novo todos os dias.
+                  Quando não está a criar jogos no computador, o Miguel está no campo a jogar futsal com os amigos — com uma energia que nunca acaba. Na escola, gosta de aprender, de participar, e de descobrir algo novo todos os dias.
                 </p>
                 <p className="text-sm text-slate-300 leading-relaxed mt-3">
                   <span className="italic text-sky-300">O Núcleo do Espaço</span> nasceu dessa mesma curiosidade — a vontade de criar algo do zero e partilhá-lo com o mundo. Este jogo é a prova de que a idade é apenas um número quando tens imaginação e vontade de aprender.
