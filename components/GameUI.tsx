@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   GameState, GameReport, PowerUpType, PowerUpConfig, ThemeType, UpgradesState,
   DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement
@@ -107,21 +107,6 @@ export const WHEEL_SEGMENTS: {
   { type: 'TIME_FREEZE', label: 'Congelamento Cósmico', shortLabel: 'Gelo', color: '#38bdf8', description: 'Inimigos e Detritos 65% Mais Lentos', Icon: Gauge },
   { type: 'DOUBLE_SHIELD', label: 'Escudo Duplo 360°', shortLabel: 'Duplo', color: '#10b981', description: 'Segundo Escudo Espelhado a 180°', Icon: Layers },
   { type: 'JACKPOT_CREDITS', label: 'Super Jackpot CR', shortLabel: 'Jackpot', color: '#f59e0b', description: '+5.000 Créditos Instantâneos', Icon: Gift },
-  { type: 'EXTRA_SPINS_REWARD', label: '+3 Giros Grátis', shortLabel: '+3 Giros', color: '#8b5cf6', description: '+3 Giros Extra de Roleta Gratuitos', Icon: RotateCcw },
-  { type: 'PLASMA_OVERCHARGE', label: 'Super Plasma', shortLabel: 'Plasma', color: '#d946ef', description: '+250 Pts por Bloqueio e Dano a Chefes', Icon: Crosshair },
-  { type: 'INVULNERABILITY_BOOST', label: 'Campo de Força', shortLabel: 'Barreira', color: '#6366f1', description: 'Absorve Impacto Crítico ao Núcleo', Icon: Shield },
-  { type: 'CREDIT_FRENZY', label: 'Fúria de Mineração', shortLabel: 'x3 CR', color: '#84cc16', description: 'Créditos de Fim de Jogo Triplicados', Icon: Coins },
-  // 10 Novas Opções da Roleta
-  { type: 'ORBITAL_LASER', label: 'Laser Orbital', shortLabel: 'Laser', color: '#f43f5e', description: 'Dispara raios periódicos que vaporizam detritos', Icon: Radio },
-  { type: 'GRAVITY_PULL', label: 'Vórtice Gravitacional', shortLabel: 'Vórtice', color: '#0284c7', description: 'Atrai detritos para a trajetória do escudo', Icon: Orbit },
-  { type: 'SUPER_MEGA_CREDITS', label: 'Mega Fortuna (+10.000 CR)', shortLabel: '+10k CR', color: '#ca8a04', description: '+10.000 Créditos instantâneos na conta', Icon: Trophy },
-  { type: 'TRIPLE_SHIELD', label: 'Escudo Triplo 360°', shortLabel: 'Triplo', color: '#14b8a6', description: '3 Escudos simultâneos espaçados a 120°', Icon: Layers },
-  { type: 'BOSS_SLAYER_BOOST', label: 'Exterminador de Chefes', shortLabel: 'Anti-Boss', color: '#dc2626', description: 'Dano duplo a chefes e +10k CR ao vencer', Icon: Target },
-  { type: 'SUPER_SPINS_PACK', label: 'Pack Galáctico (+10 Giros)', shortLabel: '+10 Giros', color: '#c084fc', description: '+10 Giros Extra gratuitos na Roleta', Icon: Play },
-  { type: 'CHAIN_LIGHTNING', label: 'Relâmpago em Cadeia', shortLabel: 'Raio', color: '#0ea5e9', description: 'Bloqueios disparam arcos elétricos em cadeia', Icon: Zap },
-  { type: 'CORE_REPULSOR', label: 'Repulsor do Núcleo', shortLabel: 'Repulsor', color: '#a21caf', description: 'Onda cinética afasta projéteis do núcleo', Icon: Compass },
-  { type: 'SCORE_FRENZY_5X', label: 'Hiper Pontuação x5', shortLabel: 'x5 Pts', color: '#fb923c', description: 'Multiplicador extremo de 5x a todos os pontos', Icon: Sparkles },
-  { type: 'GIGA_JACKPOT', label: 'Jackpot Cósmico (+25.000 CR)', shortLabel: '+25k CR', color: '#e11d48', description: 'Prémio supremo de +25.000 Créditos imediatos', Icon: Gift },
 ];
 
 const POWERUPS: Record<PowerUpType, PowerUpConfig> = {
@@ -365,23 +350,20 @@ const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />;
 };
 
-const DISPLAY_SEGMENTS = 12;
 const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean, lastResult: PowerUpType }> = ({ onComplete, spinning, lastResult }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [resultData, setResultData] = useState<typeof WHEEL_SEGMENTS[0] | null>(null);
-  const segmentsRef = useRef(WHEEL_SEGMENTS.slice(0, DISPLAY_SEGMENTS));
 
-  const segmentAngle = (2 * Math.PI) / DISPLAY_SEGMENTS;
+  const segmentAngle = (2 * Math.PI) / WHEEL_SEGMENTS.length;
 
-  const drawWheel = useCallback(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const segments = segmentsRef.current;
     const size = 300;
     canvas.width = size;
     canvas.height = size;
@@ -391,10 +373,9 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
     ctx.clearRect(0, 0, size, size);
 
-    segments.forEach((seg, i) => {
-      const sa = (2 * Math.PI) / DISPLAY_SEGMENTS;
-      const startAngle = i * sa - Math.PI / 2;
-      const endAngle = startAngle + sa;
+    WHEEL_SEGMENTS.forEach((seg, i) => {
+      const startAngle = i * segmentAngle - Math.PI / 2;
+      const endAngle = startAngle + segmentAngle;
 
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -413,7 +394,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      const midAngle = startAngle + sa / 2;
+      const midAngle = startAngle + segmentAngle / 2;
       const textR = r * 0.65;
       const tx = cx + Math.cos(midAngle) * textR;
       const ty = cy + Math.sin(midAngle) * textR;
@@ -457,28 +438,12 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
   }, []);
 
   useEffect(() => {
-    drawWheel();
-  }, [drawWheel]);
-
-  useEffect(() => {
     if (spinning) {
       setShowResult(false);
       setResultData(null);
       const randomIdx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
-      const result = WHEEL_SEGMENTS[randomIdx];
-
-      const segments = segmentsRef.current;
-      let targetSlot = segments.findIndex(s => s.type === result.type);
-      if (targetSlot < 0) {
-        targetSlot = Math.floor(Math.random() * DISPLAY_SEGMENTS);
-        const updated = [...segments];
-        updated[targetSlot] = result;
-        segmentsRef.current = updated;
-        drawWheel();
-      }
-
-      const segAngleDeg = 360 / DISPLAY_SEGMENTS;
-      const targetAngle = targetSlot * segAngleDeg + segAngleDeg / 2;
+      const segAngleDeg = 360 / WHEEL_SEGMENTS.length;
+      const targetAngle = randomIdx * segAngleDeg + segAngleDeg / 2;
       const newRotation = rotation + 1440 + (360 - targetAngle);
       setRotation(newRotation);
 
@@ -488,6 +453,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
       setTimeout(() => {
         clearInterval(tickInterval);
+        const result = WHEEL_SEGMENTS[randomIdx];
         setResultData(result);
         setShowResult(true);
         onComplete(result.type);
