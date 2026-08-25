@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   GameState, GameReport, PowerUpType, PowerUpConfig, ThemeType, UpgradesState,
   DifficultyType, CustomSkinConfig, GameMode, BossState, Quest, Achievement
@@ -365,22 +365,23 @@ const PowerUpPreviewCanvas: React.FC<{ type: PowerUpType; color: string; size?: 
   return <canvas ref={canvasRef} width={size} height={size} className="rounded-lg" />;
 };
 
-const DISPLAY_SEGMENTS = WHEEL_SEGMENTS.length;
+const DISPLAY_SEGMENTS = 12;
 const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boolean, lastResult: PowerUpType }> = ({ onComplete, spinning, lastResult }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [resultData, setResultData] = useState<typeof WHEEL_SEGMENTS[0] | null>(null);
+  const segmentsRef = useRef(WHEEL_SEGMENTS.slice(0, DISPLAY_SEGMENTS));
 
-  const visibleSegments = WHEEL_SEGMENTS.slice(0, DISPLAY_SEGMENTS);
   const segmentAngle = (2 * Math.PI) / DISPLAY_SEGMENTS;
 
-  useEffect(() => {
+  const drawWheel = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const segments = segmentsRef.current;
     const size = 300;
     canvas.width = size;
     canvas.height = size;
@@ -390,9 +391,10 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
     ctx.clearRect(0, 0, size, size);
 
-    visibleSegments.forEach((seg, i) => {
-      const startAngle = i * segmentAngle - Math.PI / 2;
-      const endAngle = startAngle + segmentAngle;
+    segments.forEach((seg, i) => {
+      const sa = (2 * Math.PI) / DISPLAY_SEGMENTS;
+      const startAngle = i * sa - Math.PI / 2;
+      const endAngle = startAngle + sa;
 
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -411,7 +413,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      const midAngle = startAngle + segmentAngle / 2;
+      const midAngle = startAngle + sa / 2;
       const textR = r * 0.65;
       const tx = cx + Math.cos(midAngle) * textR;
       const ty = cy + Math.sin(midAngle) * textR;
@@ -423,7 +425,7 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
       ctx.rotate(flip ? textAngle + Math.PI : textAngle);
 
       ctx.fillStyle = '#fff';
-      ctx.font = 'bold 8px system-ui, sans-serif';
+      ctx.font = 'bold 11px system-ui, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = 'rgba(0,0,0,0.9)';
@@ -455,13 +457,28 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
   }, []);
 
   useEffect(() => {
+    drawWheel();
+  }, [drawWheel]);
+
+  useEffect(() => {
     if (spinning) {
       setShowResult(false);
       setResultData(null);
       const randomIdx = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
-      const displayIdx = randomIdx % DISPLAY_SEGMENTS;
+      const result = WHEEL_SEGMENTS[randomIdx];
+
+      const segments = segmentsRef.current;
+      let targetSlot = segments.findIndex(s => s.type === result.type);
+      if (targetSlot < 0) {
+        targetSlot = Math.floor(Math.random() * DISPLAY_SEGMENTS);
+        const updated = [...segments];
+        updated[targetSlot] = result;
+        segmentsRef.current = updated;
+        drawWheel();
+      }
+
       const segAngleDeg = 360 / DISPLAY_SEGMENTS;
-      const targetAngle = displayIdx * segAngleDeg + segAngleDeg / 2;
+      const targetAngle = targetSlot * segAngleDeg + segAngleDeg / 2;
       const newRotation = rotation + 1440 + (360 - targetAngle);
       setRotation(newRotation);
 
@@ -471,7 +488,6 @@ const Wheel: React.FC<{ onComplete: (type: PowerUpType) => void, spinning: boole
 
       setTimeout(() => {
         clearInterval(tickInterval);
-        const result = WHEEL_SEGMENTS[randomIdx];
         setResultData(result);
         setShowResult(true);
         onComplete(result.type);
