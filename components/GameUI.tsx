@@ -608,11 +608,17 @@ const GameUI: React.FC<GameUIProps> = ({
     }
 
     if (!isCreditsReward && result !== 'NONE') {
-      setWonPowerUps(prev => [...prev, result]);
-    }
-
-    if (hasMultiBonus && !isCreditsReward && result !== 'NONE') {
-      if (onPowerUpSelected) onPowerUpSelected(result);
+      const alreadyHas = equippedPowerUps.includes(result) || activePowerUp === result;
+      const alreadyWon = wonPowerUps.includes(result);
+      if (alreadyHas || alreadyWon) {
+        if (onAwardCredits) onAwardCredits(1000);
+        addToast(`${POWERUPS[result].label} duplicado → +1.000 CR`, '#eab308', '💰');
+      } else {
+        setWonPowerUps(prev => [...prev, result]);
+        if (hasMultiBonus) {
+          if (onPowerUpSelected) onPowerUpSelected(result);
+        }
+      }
     }
   };
 
