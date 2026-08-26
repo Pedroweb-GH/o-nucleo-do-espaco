@@ -718,22 +718,22 @@ const GameUI: React.FC<GameUIProps> = ({
         
         {/* Boss Health Bar on Top of HUD */}
         {gameState === GameState.PLAYING && bossState && bossState.active && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-14 sm:top-16 w-full max-w-md px-4 flex flex-col items-center animate-in fade-in zoom-in-95 duration-300 z-30">
-            <div className="bg-slate-950/90 backdrop-blur-md border-2 border-red-500/70 p-3 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.4)] w-full">
-              <div className="flex justify-between items-center mb-1.5">
-                <div className="flex items-center gap-2">
-                  <Flame size={16} className="text-red-500 animate-bounce" />
-                  <span className="text-xs font-black tracking-widest text-red-400 uppercase">{bossState.name}</span>
+          <div className="fixed bottom-16 sm:bottom-20 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 flex flex-col items-center animate-in fade-in zoom-in-95 duration-300 z-30">
+            <div className="bg-slate-950/90 backdrop-blur-md border border-red-500/50 px-3 py-2 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.3)] w-full">
+              <div className="flex justify-between items-center mb-1">
+                <div className="flex items-center gap-1.5">
+                  <Flame size={12} className="text-red-500 animate-bounce" />
+                  <span className="text-[11px] font-black tracking-widest text-red-400 uppercase">{bossState.name}</span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400">{Math.max(0, Math.round(bossState.health))} / {bossState.maxHealth} HP</span>
+                <span className="text-[9px] font-mono text-slate-400">{Math.max(0, Math.round(bossState.health))} / {bossState.maxHealth} HP</span>
               </div>
-              <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-red-950 p-0.5">
-                <div 
+              <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-red-950 p-0.5">
+                <div
                   className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 rounded-full transition-all duration-150"
                   style={{ width: `${Math.min(100, Math.max(0, (bossState.health / bossState.maxHealth) * 100))}%` }}
                 />
               </div>
-              <p className="text-[10px] text-slate-400 text-center mt-1 italic">{bossState.title}</p>
+              <p className="text-[9px] text-slate-400 text-center mt-0.5 italic">{bossState.title}</p>
             </div>
           </div>
         )}
