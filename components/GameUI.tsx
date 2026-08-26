@@ -562,9 +562,6 @@ const GameUI: React.FC<GameUIProps> = ({
     }
   }, [level]);
 
-  useEffect(() => {
-    if (damageFlash) addToast('Núcleo atingido!', '#ef4444', '💥');
-  }, [damageFlash]);
 
   // Unclaimed rewards count
   const claimableQuestsCount = quests.filter(q => q.completed && !q.claimed).length;
