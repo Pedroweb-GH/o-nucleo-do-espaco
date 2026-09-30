@@ -89,6 +89,23 @@ const App: React.FC = () => {
 
   // Load all persisted state
   useEffect(() => {
+    const DATA_VERSION = '2';
+    if (localStorage.getItem('nucleoEspaco_dataVersion') !== DATA_VERSION) {
+      [
+        'nucleoEspaco_credits', 'nucleoEspaco_highscore', 'nucleoEspaco_upgrades',
+        'nucleoEspaco_themes', 'nucleoEspaco_currentTheme', 'nucleoEspaco_customSkin',
+        'nucleoEspaco_hasMultiBonus', 'nucleoEspaco_multiBonusSlots',
+        'nucleoEspaco_equippedPowerUps', 'nucleoEspaco_unlockedPowerUps', 'nucleoEspaco_selectedPowerUp',
+        'nucleoEspaco_extraSpins', 'nucleoEspaco_spinsCooldown', 'nucleoEspaco_hasSpun',
+        'nucleoEspaco_quests', 'nucleoEspaco_achievements', 'nucleoEspaco_questDate',
+        'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
+        'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
+        'nucleoEspaco_hasPlayed', 'nucleoEspaco_gameHistory', 'nucleoEspaco_bestCombo',
+      ].forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('nucleoEspaco_dataVersion', DATA_VERSION);
+      return;
+    }
+
     const savedCredits = localStorage.getItem('nucleoEspaco_credits');
     if (savedCredits) setCredits(safeInt(savedCredits));
 
