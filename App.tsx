@@ -550,59 +550,61 @@ const App: React.FC = () => {
   }, [score, highScore, upgrades.mining, difficulty, activePowerUps, activePowerUp]);
 
   const handleBuyTheme = useCallback((theme: ThemeType, price: number) => {
-    if (credits >= price && !unlockedThemes.includes(theme)) {
-        const newCredits = credits - price;
-        setCredits(newCredits);
-        localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
-        const newThemes = [...unlockedThemes, theme];
-        setUnlockedThemes(newThemes);
-        localStorage.setItem('nucleoEspaco_themes', JSON.stringify(newThemes));
-        setCurrentTheme(theme);
-        localStorage.setItem('nucleoEspaco_currentTheme', theme);
-    }
-  }, [credits, unlockedThemes]);
+    if (unlockedThemes.includes(theme)) return;
+    setCredits(prev => {
+      if (prev < price) return prev;
+      const newCredits = prev - price;
+      localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
+      const newThemes = [...unlockedThemes, theme];
+      setUnlockedThemes(newThemes);
+      localStorage.setItem('nucleoEspaco_themes', JSON.stringify(newThemes));
+      setCurrentTheme(theme);
+      localStorage.setItem('nucleoEspaco_currentTheme', theme);
+      return newCredits;
+    });
+  }, [unlockedThemes]);
 
   const handleBuyUpgrade = useCallback((type: keyof UpgradesState, price: number) => {
-    if (credits >= price) {
-        const newCredits = credits - price;
-        setCredits(newCredits);
-        localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
-        const newUpgrades = { ...upgrades };
+    setCredits(prev => {
+      if (prev < price) return prev;
+      const newCredits = prev - price;
+      localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
+      setUpgrades(prevUpgrades => {
+        const newUpgrades = { ...prevUpgrades };
         newUpgrades[type] = (newUpgrades[type] || 0) + 1;
-        setUpgrades(newUpgrades);
         localStorage.setItem('nucleoEspaco_upgrades', JSON.stringify(newUpgrades));
-    }
-  }, [credits, upgrades]);
+        return newUpgrades;
+      });
+      return newCredits;
+    });
+  }, []);
 
   const handleBuySpins = useCallback((spinsCount: number = 5, price: number = 15000) => {
-    if (credits >= price) {
-      const newCredits = credits - price;
-      setCredits(newCredits);
+    setCredits(prev => {
+      if (prev < price) return prev;
+      const newCredits = prev - price;
       localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
-      setExtraSpins(prev => {
-        const newVal = prev + spinsCount;
+      setExtraSpins(prevSpins => {
+        const newVal = prevSpins + spinsCount;
         localStorage.setItem('nucleoEspaco_extraSpins', newVal.toString());
         return newVal;
       });
-    }
-  }, [credits]);
+      return newCredits;
+    });
+  }, []);
 
   const handleBuyMultiBonus = useCallback((slots: 5 | 8, price: number = 30000) => {
-    if (credits >= price) {
-      const newCredits = credits - price;
-      setCredits(newCredits);
+    setCredits(prev => {
+      if (prev < price) return prev;
+      const newCredits = prev - price;
       localStorage.setItem('nucleoEspaco_credits', newCredits.toString());
       setHasMultiBonus(true);
       setMultiBonusSlots(slots);
       localStorage.setItem('nucleoEspaco_hasMultiBonus', 'true');
       localStorage.setItem('nucleoEspaco_multiBonusSlots', slots.toString());
-      if (selectedPowerUp !== 'NONE' && !equippedPowerUps.includes(selectedPowerUp)) {
-        const initial = [selectedPowerUp];
-        setEquippedPowerUps(initial);
-        localStorage.setItem('nucleoEspaco_equippedPowerUps', JSON.stringify(initial));
-      }
-    }
-  }, [credits, selectedPowerUp, equippedPowerUps]);
+      return newCredits;
+    });
+  }, []);
 
   const handleToggleEquipPowerUp = useCallback((type: PowerUpType) => {
     if (type === 'NONE') return;
