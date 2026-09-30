@@ -185,6 +185,7 @@ export interface Achievement {
   target: number;
   rewardCredits: number;
   unlocked: boolean;
+  claimed: boolean;
   progress: number;
 }
 

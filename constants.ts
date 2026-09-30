@@ -294,6 +294,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 1,
     rewardCredits: 500,
     unlocked: false,
+    claimed: false,
     progress: 0
   },
   {
@@ -305,6 +306,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 100,
     rewardCredits: 2500,
     unlocked: false,
+    claimed: false,
     progress: 0
   },
   {
@@ -316,6 +318,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 5,
     rewardCredits: 3000,
     unlocked: false,
+    claimed: false,
     progress: 0
   },
   {
@@ -327,6 +330,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 1,
     rewardCredits: 5000,
     unlocked: false,
+    claimed: false,
     progress: 0
   },
   {
@@ -338,6 +342,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 10,
     rewardCredits: 8000,
     unlocked: false,
+    claimed: false,
     progress: 0
   },
   {
@@ -349,6 +354,7 @@ export const INITIAL_ACHIEVEMENTS = [
     target: 50000,
     rewardCredits: 10000,
     unlocked: false,
+    claimed: false,
     progress: 0
   }
 ];

@@ -565,8 +565,8 @@ const GameUI: React.FC<GameUIProps> = ({
 
   // Unclaimed rewards count
   const claimableQuestsCount = quests.filter(q => q.completed && !q.claimed).length;
-  const claimableAchievementsCount = achievements.filter(a => a.unlocked && a.progress >= a.target).length;
-  const totalClaimable = claimableQuestsCount;
+  const claimableAchievementsCount = achievements.filter(a => a.unlocked && a.progress >= a.target && !a.claimed).length;
+  const totalClaimable = claimableQuestsCount + claimableAchievementsCount;
 
   // Current pilot rank
   const currentRank = [...PILOT_RANKS].reverse().find(r => highScore >= r.minScore) || PILOT_RANKS[0];
@@ -1168,7 +1168,9 @@ const GameUI: React.FC<GameUIProps> = ({
                                 <span className={`font-bold text-xs ${a.unlocked ? 'text-purple-300' : 'text-white'}`}>{a.title}</span>
                                 <p className="text-[11px] text-slate-400 mt-0.5">{a.description}</p>
                               </div>
-                              {a.unlocked ? (
+                              {a.unlocked && a.claimed ? (
+                                <span className="text-[10px] text-slate-500 font-bold shrink-0">Reclamado</span>
+                              ) : a.unlocked ? (
                                 <button
                                   onClick={() => onClaimAchievement(a.id)}
                                   className="px-2.5 py-1.5 bg-purple-500 hover:bg-purple-400 text-slate-950 font-black text-[10px] rounded-lg shadow-lg shadow-purple-500/30 transition-all shrink-0"

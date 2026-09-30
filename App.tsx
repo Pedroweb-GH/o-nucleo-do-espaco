@@ -720,7 +720,7 @@ const App: React.FC = () => {
     setBossState(null);
     setReport(null);
     setQuests(INITIAL_QUESTS.map(q => ({ ...q, current: 0, completed: false, claimed: false })));
-    setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a, progress: 0, unlocked: false })));
+    setAchievements(INITIAL_ACHIEVEMENTS.map(a => ({ ...a, progress: 0, unlocked: false, claimed: false })));
     setGameHistory([]);
     setPowerUpTimers({});
     setShowTutorial(true);
@@ -772,13 +772,13 @@ const App: React.FC = () => {
   const handleClaimAchievement = useCallback((achId: string) => {
     setAchievements(prev => {
       const updated = prev.map(a => {
-        if (a.id === achId && a.unlocked) {
+        if (a.id === achId && a.unlocked && !a.claimed) {
           setCredits(c => {
             const nc = c + a.rewardCredits;
             localStorage.setItem('nucleoEspaco_credits', nc.toString());
             return nc;
           });
-          return { ...a, unlocked: true };
+          return { ...a, claimed: true };
         }
         return a;
       });
