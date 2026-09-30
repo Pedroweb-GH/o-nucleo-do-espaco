@@ -25,6 +25,12 @@ function safeParse<T>(json: string, fallback: T): T {
   try { return JSON.parse(json); } catch { return fallback; }
 }
 
+function safeInt(value: string | null, fallback: number = 0): number {
+  if (!value) return fallback;
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? fallback : n;
+}
+
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
   const [gameMode, setGameMode] = useState<GameMode>('CLASSIC');
@@ -84,7 +90,7 @@ const App: React.FC = () => {
   // Load all persisted state
   useEffect(() => {
     const savedCredits = localStorage.getItem('nucleoEspaco_credits');
-    if (savedCredits) setCredits(parseInt(savedCredits, 10));
+    if (savedCredits) setCredits(safeInt(savedCredits));
 
     const savedMode = localStorage.getItem('nucleoEspaco_gameMode');
     if (savedMode && (savedMode === 'CLASSIC' || savedMode === 'SURVIVAL' || savedMode === 'BOSS_RUSH' || savedMode === 'ZEN' || savedMode === 'TIME_ATTACK')) {
@@ -94,7 +100,7 @@ const App: React.FC = () => {
     const savedSlots = localStorage.getItem('nucleoEspaco_multiBonusSlots');
     const savedMulti = localStorage.getItem('nucleoEspaco_hasMultiBonus');
     if (savedSlots) {
-      const parsedSlots = parseInt(savedSlots, 10);
+      const parsedSlots = safeInt(savedSlots);
       setMultiBonusSlots(parsedSlots);
       setHasMultiBonus(parsedSlots > 0);
     } else if (savedMulti === 'true') {
@@ -121,10 +127,10 @@ const App: React.FC = () => {
     }
 
     const savedSpins = localStorage.getItem('nucleoEspaco_extraSpins');
-    if (savedSpins) setExtraSpins(parseInt(savedSpins, 10));
+    if (savedSpins) setExtraSpins(safeInt(savedSpins));
 
     const savedCooldown = localStorage.getItem('nucleoEspaco_spinsCooldown');
-    if (savedCooldown) setSpinsCooldownUntil(parseInt(savedCooldown, 10));
+    if (savedCooldown) setSpinsCooldownUntil(safeInt(savedCooldown));
 
     const savedThemes = localStorage.getItem('nucleoEspaco_themes');
     if (savedThemes) setUnlockedThemes(safeParse<ThemeType[]>(savedThemes, ['DEFAULT']));
@@ -136,7 +142,7 @@ const App: React.FC = () => {
     if (savedCustomSkin) setCustomSkin(safeParse(savedCustomSkin, DEFAULT_CUSTOM_SKIN));
 
     const savedHigh = localStorage.getItem('nucleoEspaco_highscore');
-    if (savedHigh) setHighScore(parseInt(savedHigh, 10));
+    if (savedHigh) setHighScore(safeInt(savedHigh));
 
     const savedUpgrades = localStorage.getItem('nucleoEspaco_upgrades');
     if (savedUpgrades) setUpgrades(safeParse(savedUpgrades, { hull: 0, mining: 0, regen: 0, luck: 0 }));
@@ -266,13 +272,10 @@ const App: React.FC = () => {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [gameState, handlePause]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (Space/contextmenu for EMP handled in GameCanvas)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && gameState === GameState.PLAYING) {
-        e.preventDefault();
-        if (triggerEmpFnRef.current) triggerEmpFnRef.current();
-      } else if (e.code === 'KeyP' || e.code === 'Escape') {
+      if (e.code === 'KeyP' || e.code === 'Escape') {
         if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
           e.preventDefault();
           handleTogglePause();
@@ -284,18 +287,9 @@ const App: React.FC = () => {
       }
     };
 
-    const handleContextMenu = (e: MouseEvent) => {
-      if (gameState === GameState.PLAYING) {
-        e.preventDefault();
-        if (triggerEmpFnRef.current) triggerEmpFnRef.current();
-      }
-    };
-
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('contextmenu', handleContextMenu);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('contextmenu', handleContextMenu);
     };
   }, [gameState, toggleFullscreen, handleToggleSfx, handleTogglePause]);
 
@@ -693,7 +687,7 @@ const App: React.FC = () => {
       'nucleoEspaco_gameMode', 'nucleoEspaco_difficulty', 'nucleoEspaco_colorblind',
       'nucleoEspaco_sfxMuted', 'nucleoEspaco_musicMuted', 'nucleoEspaco_highPerformance',
       'nucleoEspaco_hasPlayed', 'nucleoEspaco_questDate', 'nucleoEspaco_gameHistory',
-      'nucleoEspaco_spinsCooldown', 'nucleoEspaco_hasSpun',
+      'nucleoEspaco_spinsCooldown', 'nucleoEspaco_hasSpun', 'nucleoEspaco_bestCombo',
     ];
     keys.forEach(k => localStorage.removeItem(k));
 

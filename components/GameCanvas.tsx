@@ -107,6 +107,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const damageFlashRef = useRef(0);
 
   const lastEmpTimeRef = useRef(0);
+  const empEnergyRef = useRef(empEnergy);
+  empEnergyRef.current = empEnergy;
 
   // Keyboard controls state (Left/Right arrow or A/D keys for desktop play)
   const keysDownRef = useRef<{ left: boolean; right: boolean }>({ left: false, right: false });
@@ -117,7 +119,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   // Register external trigger for EMP (from UI button)
   const triggerEmpShockwave = () => {
     if (gameState !== GameState.PLAYING) return;
-    if (empEnergy < 100 || deflectComboRef.current < 4) return;
+    if (empEnergyRef.current < 100 || deflectComboRef.current < 4) return;
     if (empShockwaveRef.current.active) return;
     if (performance.now() - lastEmpTimeRef.current < 10000) return;
 
@@ -176,7 +178,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     if (registerEmpTrigger) {
       registerEmpTrigger(triggerEmpShockwave);
     }
-  }, [registerEmpTrigger, empEnergy, gameState]);
+  }, [registerEmpTrigger, gameState]);
 
   // Desktop Keyboard Controls & Right Click for EMP
   useEffect(() => {
@@ -187,7 +189,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       if (e.code === 'ArrowRight' || e.code === 'KeyD') {
         keysDownRef.current.right = true;
       }
-      if (e.code === 'Space' && gameState === GameState.PLAYING && empEnergy >= 100 && deflectComboRef.current >= 4) {
+      if (e.code === 'Space' && gameState === GameState.PLAYING && empEnergyRef.current >= 100 && deflectComboRef.current >= 4) {
         e.preventDefault();
         triggerEmpShockwave();
       }
@@ -205,7 +207,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     const handleContextMenu = (e: MouseEvent) => {
       if (gameState === GameState.PLAYING) {
         e.preventDefault();
-        if (empEnergy >= 100 && deflectComboRef.current >= 4) {
+        if (empEnergyRef.current >= 100 && deflectComboRef.current >= 4) {
           triggerEmpShockwave();
         }
       }
@@ -219,7 +221,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [gameState, empEnergy]);
+  }, [gameState]);
 
   // Mobile touch controls: drag finger to aim shield
   useEffect(() => {
@@ -793,7 +795,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
             soundEngine.playShieldBlock(1);
             onDeflectObstacle?.();
             const empGain = hasPowerUp('HYPER_EMP') ? 12 : 8;
-            onEmpEnergyUpdate(Math.min(100, empEnergy + empGain));
+            onEmpEnergyUpdate(Math.min(100, empEnergyRef.current + empGain));
             return;
           }
 
@@ -837,9 +839,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
           // Charge EMP Energy (+8% standard or +18% with HYPER_EMP)
           const empGain = hasPowerUp('HYPER_EMP') ? 12 : 8;
-          const newEmp = Math.min(100, empEnergy + empGain);
+          const newEmp = Math.min(100, empEnergyRef.current + empGain);
           onEmpEnergyUpdate(newEmp);
-          if (newEmp === 100 && empEnergy < 100) {
+          if (newEmp === 100 && empEnergyRef.current < 100) {
             addFloatingText(width / 2, height / 2 + 50, "EMP PRONTO! (ESPAÇO)", "#38bdf8", 1.4);
           }
 
@@ -1277,7 +1279,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
        ctx.strokeStyle = coreColor; ctx.lineWidth = 2; ctx.stroke();
     }
 
-    const empPct = Math.min(1, empEnergy / 100);
+    const empPct = Math.min(1, empEnergyRef.current / 100);
     const empRingRadius = GAME_CONSTANTS.CORE_RADIUS + 12;
     if (empPct > 0) {
       ctx.beginPath();
@@ -1690,7 +1692,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   useEffect(() => {
     requestRef.current = requestAnimationFrame(loop);
     return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
-  }, [gameState, gameMode, activePowerUp, activePowerUps, currentTheme, difficulty, highPerformance, upgrades, colorBlindMode, empEnergy]); 
+  }, [gameState, gameMode, activePowerUp, activePowerUps, currentTheme, difficulty, highPerformance, upgrades, colorBlindMode]);
 
   useEffect(() => {
     const handleResize = () => { if (canvasRef.current) { canvasRef.current.width = window.innerWidth; canvasRef.current.height = window.innerHeight; } };

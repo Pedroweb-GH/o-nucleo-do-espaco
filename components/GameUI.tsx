@@ -63,6 +63,7 @@ interface GameUIProps {
   onColorBlindChange: (active: boolean) => void;
   // Super Ability EMP
   empEnergy: number;
+  combo: number;
   onTriggerEmp: () => void;
   // Boss State
   bossState: BossState | null;
@@ -518,7 +519,9 @@ const GameUI: React.FC<GameUIProps> = ({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [toasts, setToasts] = useState<{id: string; text: string; color: string; icon: string}[]>([]);
-  const [bestCombo, setBestCombo] = useState(0);
+  const [bestCombo, setBestCombo] = useState(() => {
+    try { const v = localStorage.getItem('nucleoEspaco_bestCombo'); return v ? Math.max(0, parseInt(v, 10) || 0) : 0; } catch { return 0; }
+  });
   
   // Wheel state
   const [isSpinning, setIsSpinning] = useState(false);
@@ -550,7 +553,10 @@ const GameUI: React.FC<GameUIProps> = ({
   }, [wonPowerUps, isSpinning, hasAvailableSpins, hasMultiBonus]);
 
   useEffect(() => {
-    if (combo > bestCombo) setBestCombo(combo);
+    if (combo > bestCombo) {
+      setBestCombo(combo);
+      localStorage.setItem('nucleoEspaco_bestCombo', combo.toString());
+    }
     if (combo === 5) addToast('Combo x5! Incrível!', '#facc15', '🔥');
     else if (combo === 10) addToast('Combo x10! Imparável!', '#f97316', '⚡');
     else if (combo === 20) addToast('Combo x20! LENDÁRIO!', '#ef4444', '🌟');
@@ -812,16 +818,16 @@ const GameUI: React.FC<GameUIProps> = ({
           <button
             id="in-game-emp-btn"
             onClick={onTriggerEmp}
-            disabled={empEnergy < 100}
+            disabled={empEnergy < 100 || combo < 4}
             className={`pointer-events-auto absolute rounded-full flex items-center justify-center gap-1 transition-all duration-300 ${
-              empEnergy >= 100
+              empEnergy >= 100 && combo >= 4
                 ? 'px-3 py-1.5 bg-sky-500/90 text-slate-950 shadow-[0_0_20px_rgba(56,189,248,0.7)] animate-pulse cursor-pointer hover:scale-110 font-black text-[10px] uppercase tracking-wider'
                 : 'px-2.5 py-1 bg-slate-950/70 backdrop-blur border border-slate-700 text-slate-500 cursor-default text-[10px] font-bold'
             }`}
             style={{ top: 'calc(50% + 55px)' }}
           >
-            <Zap size={12} className={empEnergy >= 100 ? 'text-slate-950' : 'text-sky-600'} />
-            <span>{empEnergy >= 100 ? 'EMP!' : `${Math.round(empEnergy)}%`}</span>
+            <Zap size={12} className={empEnergy >= 100 && combo >= 4 ? 'text-slate-950' : 'text-sky-600'} />
+            <span>{empEnergy < 100 ? `${Math.round(empEnergy)}%` : combo < 4 ? `x${combo}/x4` : 'EMP!'}</span>
           </button>
         </div>
       )}
