@@ -1,6 +1,6 @@
 import { GameReport } from "../types";
 
-const getFallbackReport = (score: number, timeAlive: number): GameReport => {
+export const generateBattleReport = async (score: number, timeAlive: number): Promise<GameReport> => {
   let rank = "Cadete Espacial";
   let message = "Tentativa corajosa, piloto. O núcleo sofreu danos críticos, mas os dados foram recuperados.";
 
@@ -22,53 +22,4 @@ const getFallbackReport = (score: number, timeAlive: number): GameReport => {
   }
 
   return { rank, message };
-};
-
-export const generateBattleReport = async (score: number, timeAlive: number): Promise<GameReport> => {
-  try {
-    const apiKey = typeof process !== 'undefined' && process.env ? (process.env.API_KEY || process.env.GEMINI_API_KEY) : undefined;
-    if (!apiKey) {
-      return getFallbackReport(score, timeAlive);
-    }
-
-    const { GoogleGenAI, Type } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey });
-    const prompt = `
-      O jogador acabou de terminar um jogo de "O Núcleo do Espaço" onde protege um núcleo de asteróides.
-      Estatísticas:
-      - Pontuação: ${score}
-      - Tempo de Sobrevivência: ${timeAlive.toFixed(1)} segundos.
-
-      Gera um relatório muito curto, estilo "Diário de Bordo" (Sci-Fi), em Português de Portugal (PT-PT), avaliando o desempenho.
-      Se a pontuação for baixa (< 500), sê crítico/sarcástico mas divertido.
-      Se a pontuação for alta (> 2000), mostra-te impressionado.
-
-      Atribui também uma patente militar/sci-fi baseada no desempenho (em Português).
-    `;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            message: { type: Type.STRING, description: "A mensagem curta do diário do comandante" },
-            rank: { type: Type.STRING, description: "A patente atribuída" }
-          },
-          required: ["message", "rank"]
-        }
-      }
-    });
-
-    const jsonStr = response.text;
-    if (!jsonStr) return getFallbackReport(score, timeAlive);
-
-    return JSON.parse(jsonStr) as GameReport;
-
-  } catch (error) {
-    console.warn("AI Generation Error, falling back to local report:", error);
-    return getFallbackReport(score, timeAlive);
-  }
 };
